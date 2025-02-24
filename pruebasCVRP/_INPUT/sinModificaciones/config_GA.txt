@@ -1,0 +1,21 @@
+====================================================================================================
+#Algorithm miGenetico
+
+//parámetros
+#MAX_GENERATIONS 10
+#N 3
+ 
+
+#Problem-Instance _INPUT/instancia_simpleCVRP.txt
+
+#mutation PolynomialMutation
+#PolynomialMutation-probability 0.01
+#PolynomialMutation-distributionIndex 15.0
+#selection RandomSelection
+#crossover SBXCrossover
+#SBXCrossover-probability 1.0
+#SBXCrossover-distributionIndex 15.0
+
+
+
+=====================================================================================================
