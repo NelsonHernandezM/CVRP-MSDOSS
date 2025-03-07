@@ -2,11 +2,11 @@
 #Algorithm miGenetico
 
 //parámetros
-#MAX_GENERATIONS 10000
-#N 5
+#MAX_GENERATIONS 1
+#N 31
  
 
-#Problem-Instance _INPUT/instancia_simpleCVRP.txt
+#Problem-Instance _INPUT/instancia_VRP.txt
 
 #mutation miMutacion
 #miMutacion-probability 0.2

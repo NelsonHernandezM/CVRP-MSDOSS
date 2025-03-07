@@ -1,10 +1,19 @@
 #include "miGenetico.h"
 #include <string>
 #include <algorithm>
-
+#include "utility"
+#include <vector>
+//454 busquedalocal
 miGenetico::miGenetico() :Algorithm(NULL) {
 
 }
+//miGenetico::~miGenetico() {
+//	delete best;
+//	delete pob;
+//	delete mo;
+//	delete co;
+//	delete so;
+//}
 
 
 void miGenetico::initialize() {
@@ -62,6 +71,28 @@ void imprimirConjuntoSoluciones(SolutionSet* soluciones) {
 
 
 }
+
+void imprimirSolucion(Solution sol) {
+
+
+	 
+		for (int j = 0; j < sol.getNumVariables(); j++)
+		{
+			cout << sol.getVariableValue(j);
+			if (j < sol.getNumVariables() - 1) {
+				cout << ", ";
+			}
+
+	
+
+	}
+	cout << " " << endl;
+
+
+}
+
+
+
 
 Solution perturbacionSegmento(Solution solucion) {
 	// Crear una copia de la solución original
@@ -152,6 +183,122 @@ Solution perturbacion(Solution solucion) {
 	return solucion;
 }
 
+
+
+Solution perturbacionPermutacionVRP(Solution solucion) {
+	
+	//imprimirSolucion(solucion);
+
+	// Obtener una copia de la solución para trabajar con ella.
+	Solution copia(solucion.getProblem());
+
+	// Copiar el array original para no dañarlo.
+	for (int j = 0; j < copia.getNumVariables(); j++) {
+		copia.setVariableValue(j, solucion.getVariableValue(j));
+	}
+
+	// Evaluar la solución original antes de las perturbaciones.
+	copia.getProblem()->evaluate(&copia);
+	copia.getProblem()->evaluateConstraints(&copia);
+	/*imprimirSolucion(copia);*/
+	/*cout << copia.getObjective(0) << " --- " << solucion.getObjective(0) << endl;*/
+
+	// Vector para almacenar los índices de las ciudades que no se deben mover (por ejemplo, valor 0 o -1).
+	std::vector<std::pair<int, int>> indicesYValores;
+
+	// Contar 0 y -1 que no deben ser modificadas (por ejemplo, 0 y -1).
+	int contadorCiudadesFijas = 0;
+	for (int i = 0; i < copia.getNumVariables(); i++) {
+		if (copia.getVariableValue(i).L == 0 || copia.getVariableValue(i).L == -1) {
+			contadorCiudadesFijas++;
+			indicesYValores.push_back(std::make_pair(i, copia.getVariableValue(i).L)); // Guardar el índice y valor.
+		}
+	}
+
+	// Crear un arreglo auxiliar sin las deposito o final (0 o -1).
+	int* aux = new int[(copia.getNumVariables()) - contadorCiudadesFijas];
+	int j = 0; // Índice para aux.
+
+	// Llenar el arreglo aux con los clientes que pueden ser mutadas (sin los 0 y -1).
+	for (int i = 0; i < copia.getNumVariables(); i++) {
+		if (copia.getVariableValue(i).L != 0 && copia.getVariableValue(i).L != -1) {
+			aux[j++] = copia.getVariableValue(i).L;
+		}
+	}
+
+	// Realizar la mutación en el arreglo aux sin 0 y -1
+	for (int i = 0; i < j - 1; i++) {
+		int actu = aux[i];
+		int next = aux[i + 1];
+		aux[i] = next;
+		aux[i + 1] = actu;
+	}
+
+	// Restaurar los valores mutados en la solución, respetando los índices de las ciudades fijas.
+	j = 0; // Reiniciar el índice para aux.
+	for (int i = 0; i < copia.getNumVariables(); i++) {
+		bool esCiudadFija = false;
+		for (const auto& par : indicesYValores) {
+			if (par.first == i) {
+				copia.setVariableValue(i, par.second); // Restaurar el valor original (0 o -1).
+				esCiudadFija = true;
+				break;
+			}
+		}
+
+		// Si la ciudad no es fija, aplicar la mutación (restaurar el valor mutado).
+		if (!esCiudadFija) {
+			copia.setVariableValue(i, aux[j++]);
+		}
+	}
+
+	// Liberar la memoria dinámica.
+	delete[] aux;
+
+	// Evaluar la nueva solución tras la mutación.
+	copia.getProblem()->evaluate(&copia);
+	copia.getProblem()->evaluateConstraints(&copia);
+	
+
+	//if (copia.getNumberOfViolatedConstraints() == 0) {
+	////	cout << copia.getObjective(0) <<" --- " << solucion.getObjective(0) <<endl;
+
+	//}
+	
+
+	bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
+	if (maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) > solucion.getObjective(0))
+	{
+		return copia;
+	}
+	else if (!maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) < solucion.getObjective(0))
+	{
+		return copia;;
+	}
+
+
+
+	//// Si la nueva solución no viola restricciones, devolverla.
+	//if (copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) < solucion.getObjective(0)) {
+	///*	imprimirSolucion(solucion);*/
+	///*	if (solucion.getNumberOfViolatedConstraints() > 0) {
+	//		cout << "era peor" << endl;
+	//	}*/
+	///*	cout << "mejoro"<< copia.getNumberOfViolatedConstraints()<<endl;
+	//	imprimirSolucion(copia);
+	//*/	return copia;
+	//}
+
+
+
+
+
+
+	// Si no mejora, devolver la solución original.
+	return solucion;
+}
+
+
 void busquedaLocalIterada(SolutionSet* solucionesIniciales) {
 	for (int i = 0; i < solucionesIniciales->size(); i++) {
 		Solution copia(solucionesIniciales->get(i).getProblem());
@@ -164,12 +311,19 @@ void busquedaLocalIterada(SolutionSet* solucionesIniciales) {
 		// Evaluar la copia de la solución original
 		copia.getProblem()->evaluate(&copia);
 		copia.getProblem()->evaluateConstraints(&copia);
-
+		
 		// Mostrar el valor de la nueva solución
 		//cout << "solucion pre perturbacion: " << copia.getResourceValue(0) << endl;
+	/*	imprimirSolucion(solucionesIniciales->get(i));
+		cout << solucionesIniciales->get(i).getObjective(0) << endl;*/
 
-		Solution nuevaSolucion = perturbacion(copia);
+		
+		Solution nuevaSolucion = perturbacionPermutacionVRP(copia);
+		
+		/*imprimirSolucion(nuevaSolucion);
+		cout << nuevaSolucion.getObjective(0) << endl;*/
 
+		//cout << endl;
 		// Actualizar la solución en el conjunto de soluciones iniciales
 		solucionesIniciales->set(i, nuevaSolucion);
 
@@ -247,7 +401,7 @@ void miGenetico::execute() {
 
 	//cout << "POBLACION INICIAL" << endl;
 //imprimirConjuntoSoluciones(pob);
-	cout << " " << endl;
+	//cout << " " << endl;
 
 
 
@@ -261,8 +415,30 @@ void miGenetico::execute() {
 			parents.set(1, this->so->execute(*pob));
 
 			this->co->execute(parents, childs);
+			//cout << endl;
+			//for (int j = 0; j < childs.get(0).getNumVariables(); j++)
+			//{
+			//	cout << childs.get(0).getVariableValue(j);
+			//	if (j < childs.get(0).getNumVariables() - 1) {
+			//		cout << ", ";
+			//	}
+
+			//}
+			//cout << endl;
 
 			this->mo->execute(childs.get(0));
+
+			//cout << endl;
+			//for (int j = 0; j < childs.get(0).getNumVariables(); j++)
+			//{
+			//	cout << childs.get(0).getVariableValue(j);
+			//	if (j < childs.get(0).getNumVariables() - 1) {
+			//		cout << ", ";
+			//	}
+
+			//}
+			//cout << endl;
+
 			this->mo->execute(childs.get(1));
 
 			hijosGenerados->add(childs.get(0));
@@ -270,13 +446,13 @@ void miGenetico::execute() {
 
 
 		}
-		/*cout << endl;
-		cout << "HijosGenerados---------------" << endl;
-		imprimirConjuntoSoluciones(hijosGenerados);
-		cout << "---------------------- " << endl;
-		cout << endl; cout << endl;*/
+		//cout << endl;
+		//cout << "HijosGenerados---------------" << endl;
+		//imprimirConjuntoSoluciones(hijosGenerados);
+		//cout << "---------------------- " << endl;
+		//cout << endl; cout << endl;
 
-	//	busquedaLocalIterada(hijosGenerados);//hijos generados
+		//busquedaLocalIterada(hijosGenerados);//hijos generados
 
 
 		Interval mejorHastaAhora = this->best->get(0).getObjective(0);
@@ -384,6 +560,10 @@ void miGenetico::execute() {
 
 
 	this->lastB_ = this->best;
+
+
+	
+
 
 
 }

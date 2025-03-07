@@ -3,10 +3,10 @@
 
 //parámetros
 #MAX_GENERATIONS 10000
-#N 5
+#N 21
  
 
-#Problem-Instance _INPUT/instancia_simpleCVRP.txt
+#Problem-Instance _INPUT/instancia_VRP2.txt
 
 #mutation miMutacion
 #miMutacion-probability 0.2

@@ -26,6 +26,7 @@ class miGenetico : public Algorithm
 
 public:
 	miGenetico();
+	//~miGenetico();
 	void execute() override;
 	void initialize() override;
 	void initialize(Requirements* req) override;
