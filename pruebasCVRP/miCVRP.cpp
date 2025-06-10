@@ -2,7 +2,8 @@
 
 #include "miCVRP.h"
 #include <algorithm>
- 
+#include <windows.h>
+#include <string>
 miCVRP::miCVRP() {
 
 }
@@ -212,6 +213,15 @@ Solution miCVRP::generateRandomSolution() {
     // Generate random number between half and the total number of vehicle - 1
     // cambiar 
     int numVehiculos = rnd->nextInt((this->num_Vehicles-1) / 2) + ((this->num_Vehicles-1) / 2) + 1;
+    numVehiculos = 4;
+    // Convertir a cadena ancha
+    std::wstring mensaje = L"Valor de n: " + std::to_wstring(numVehiculos) + L"\n";
+
+    // Usar la versión wide (Unicode)
+    OutputDebugStringW(mensaje.c_str());
+
+
+
     //int numVehiculos = this->num_Vehicles;
     //numVehiculos = 4;
 
