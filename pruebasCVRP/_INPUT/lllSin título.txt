@@ -1,0 +1,17 @@
+
+Selección de la variante multiobjetivo
+    Elección del objetivo 1  
+    Elección del objetivo 2  
+    Elección del objetivo 3  
+
+Modelar las funciones multiobjetivo  
+
+Definir las variables de decisión
+
+
+
+
+
+
+
+

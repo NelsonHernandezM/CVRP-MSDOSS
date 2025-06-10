@@ -9,13 +9,16 @@
 #include "miGenetico.h"
 #include "miMutacion.h"
 #include <chrono>
+#include <iostream>
+#include <string>
+
 int main()
 {
-    
+  
 
-
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 1; i++)
     {
+         
         //auto start = std::chrono::high_resolution_clock::now(); // Inicio del tiempo
 
         cout << i << endl;
@@ -27,13 +30,20 @@ int main()
 
         ProblemBuilder::add("miCVRP", new miCVRP());
 
-      // Algorithm* alg = AlgorithmBuilder::execute("_INPUT/config_GA.txt");
+//      Algorithm* alg = AlgorithmBuilder::execute("_INPUT/config_GA.txt");
 
-        //Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA.txt");
-        Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA2.txt");
+        Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA.txt");
+       //Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA2.txt");
         alg->execute();
+        ofstream out("Salida-CVRP.txt");
+        SolutionSet res = alg->getSolutionSet();
 
+        out << res;
+        out.close();
+      
         cout << *alg->getLastB() << endl;
+
+       
 
       /*  auto end = std::chrono::high_resolution_clock::now();  
         std::chrono::duration<double> duration = end - start; 

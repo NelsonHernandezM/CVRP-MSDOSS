@@ -188,7 +188,7 @@ Solution perturbacion(Solution solucion) {
 Solution perturbacionPermutacionVRP(Solution solucion) {
 	
 	//imprimirSolucion(solucion);
-
+	//cout << "Solucion" << endl;
 	// Obtener una copia de la solución para trabajar con ella.
 	Solution copia(solucion.getProblem());
 
@@ -264,7 +264,12 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 	////	cout << copia.getObjective(0) <<" --- " << solucion.getObjective(0) <<endl;
 
 	//}
-	
+	/*
+	imprimirSolucion(solucion);
+	cout << "Solucion-----------" << endl;
+
+	imprimirSolucion(copia);
+	cout << "copia" << endl;*/
 
 	bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
 	if (maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) > solucion.getObjective(0))
@@ -452,7 +457,7 @@ void miGenetico::execute() {
 		//cout << "---------------------- " << endl;
 		//cout << endl; cout << endl;
 
-		//busquedaLocalIterada(hijosGenerados);//hijos generados
+		busquedaLocalIterada(hijosGenerados);//hijos generados
 
 
 		Interval mejorHastaAhora = this->best->get(0).getObjective(0);
@@ -561,8 +566,7 @@ void miGenetico::execute() {
 
 	this->lastB_ = this->best;
 
-
-	
+ 
 
 
 

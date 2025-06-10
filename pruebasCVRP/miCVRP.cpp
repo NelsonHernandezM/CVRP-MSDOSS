@@ -132,40 +132,51 @@ void miCVRP::evaluate(Solution* s) {
 }
 
 void miCVRP::evaluateConstraints(Solution* s) {
+
     Interval* vars = s->getDecisionVariables();
-    int* cargaRutas = new int[this->num_Vehicles](); 
+    int* cargaRutas = new int[this->num_Vehicles]();
 
     int numberViolatedConstraints = 0;
     int totalofVi = 0;
-    int currentVehicle = -1; // we start with the vehicle 0 
+    int currentVehicle = 0;  // Inicializar en 0 (primera ruta inicia implícitamente)
 
     for (int i = 0; i < this->getNumberOfVariables(); i++) {
         int nodoActual = (int)vars[i].L;
 
-        if (nodoActual == 0) { // Depot indicates new vehicle
-            if (currentVehicle >= 0) { // Check previous vehicle's capacity
-                if (cargaRutas[currentVehicle] > max_Capacity) {
-                    numberViolatedConstraints++;
-                    totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
-                }
+        if (nodoActual == 0) {
+            // Verificar capacidad del vehículo ACTUAL ()
+            if (cargaRutas[currentVehicle] > max_Capacity) {
+                numberViolatedConstraints++;
+                totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
             }
+            // Cambiar al siguiente vehículo solo si hay depósito explícito
             currentVehicle++;
-            if (currentVehicle >= this->num_Vehicles) break; // there are no more available vehicles
+            if (currentVehicle >= this->num_Vehicles) { 
+                numberViolatedConstraints++;
+                break; }
         }
-        else if (nodoActual == -1) { // End of all the routes
+        else if (nodoActual == -1) {
+            // Verificar capacidad del vehículo actual antes de terminar
+            if (cargaRutas[currentVehicle] > max_Capacity) {
+                numberViolatedConstraints++;
+                totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
+            }
             break;
         }
-        else if (nodoActual > 0 && currentVehicle >= 0 && currentVehicle < this->num_Vehicles) {
-            // Add customer demand to current vehicle
+        else if (nodoActual > 0 && currentVehicle < this->num_Vehicles) {
+            // Sumar demanda al vehículo actual (inicia en 0)
             cargaRutas[currentVehicle] += customer_Demand[nodoActual - 1];
         }
     }
 
-    // Check last vehicle's capacity if not ended by -1
-    if (currentVehicle >= 0 && currentVehicle < this->num_Vehicles && cargaRutas[currentVehicle] > max_Capacity) {
+    // Verificar el último vehículo (si no terminó en 0 o -1)
+    if (currentVehicle < this->num_Vehicles && cargaRutas[currentVehicle] > max_Capacity) {
         numberViolatedConstraints++;
         totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
     }
+
+
+     
 
     for (int i = 0; i < this->getNumberOfVariables() - 1; i++) {
         int nodoActual = (int)vars[i].L;
@@ -181,6 +192,8 @@ void miCVRP::evaluateConstraints(Solution* s) {
         }
 
     }
+
+
 
 
     s->setNumberOfViolatedConstraints(numberViolatedConstraints);
@@ -199,7 +212,7 @@ Solution miCVRP::generateRandomSolution() {
     // Generate random number between half and the total number of vehicle - 1
     // cambiar 
     int numVehiculos = rnd->nextInt((this->num_Vehicles-1) / 2) + ((this->num_Vehicles-1) / 2) + 1;
-
+    //int numVehiculos = this->num_Vehicles;
     //numVehiculos = 4;
 
     do {
@@ -233,8 +246,8 @@ Solution miCVRP::generateRandomSolution() {
         ///////CAMBIAR ESTO
         for (int i = 1; i < tamSol; ++i) {
             if (cerosInsertados < numVehiculos - 1) {
-                // Solo insertar un cero si han pasado al menos 2 clientes desde el último cero
-                if ((solArray[i - 1] != 0 && rnd->nextDouble() < 0.3) || clientesDesdeUltimoCero >= 3) {
+                // 
+                if ((solArray[i - 1] != 0 && rnd->nextDouble() < 0.3) || rnd->nextDouble() < (clientesDesdeUltimoCero / (clientesDesdeUltimoCero + 5.0))) {
                     if (clientesInsertados == this->num_Customers) {
 
                     }

@@ -1,7 +1,7 @@
 ======================================================================
 #Problem miCVRP
 #NUM-CUSTOMERS 5
-#NUM-VEHICLES 3
+#NUM-VEHICLES 5
 #MAX-CAPACITY 26
 #ADJ-MATRIX
 0	1	1	1	1	1
