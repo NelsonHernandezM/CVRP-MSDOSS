@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <windows.h>
 #include <string>
+
+
 miCVRP::miCVRP() {
 
 }
@@ -213,7 +215,7 @@ Solution miCVRP::generateRandomSolution() {
     // Generate random number between half and the total number of vehicle - 1
     // cambiar 
     int numVehiculos = rnd->nextInt((this->num_Vehicles-1) / 2) + ((this->num_Vehicles-1) / 2) + 1;
-    numVehiculos = 4;
+    numVehiculos = 5;
     // Convertir a cadena ancha
     std::wstring mensaje = L"Valor de n: " + std::to_wstring(numVehiculos) + L"\n";
 
@@ -309,7 +311,7 @@ Solution miCVRP::generateRandomSolution() {
         delete[] auxPerm;
         delete[] solArray;
 
-    } while (sol_new.getNumberOfViolatedConstraints() );
+    } while (sol_new.getNumberOfViolatedConstraints()>0 );
 
     this->evaluate(&sol_new);
     this->evaluateConstraints(&sol_new);

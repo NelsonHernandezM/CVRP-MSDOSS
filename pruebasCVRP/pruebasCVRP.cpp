@@ -11,12 +11,18 @@
 #include <chrono>
 #include <iostream>
 #include <string>
-
+#include <random>
+using namespace std;
+#include <cstdlib>  // rand, srand
+ 
 int main()
 {
-  
+    std::mt19937 rng(320);  // Semilla fija
+    srand(320);  // Semilla fija
+    RandomNumber* rnd = RandomNumber::getInstance();
+           rnd->setSeed(320);
 
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 15; i++)
     {
          
         //auto start = std::chrono::high_resolution_clock::now(); // Inicio del tiempo

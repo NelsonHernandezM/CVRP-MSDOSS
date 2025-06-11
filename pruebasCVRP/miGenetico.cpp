@@ -195,11 +195,41 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 	// Copiar el array original para no dañarlo.
 	for (int j = 0; j < copia.getNumVariables(); j++) {
 		copia.setVariableValue(j, solucion.getVariableValue(j));
+
 	}
+
+	if (
+		copia.getVariableValue(0).L == 17 &&
+		copia.getVariableValue(1).L == 19 &&
+		copia.getVariableValue(2).L == 21 &&
+		copia.getVariableValue(3).L == 6 &&
+		copia.getVariableValue(4).L == 24 &&
+		copia.getVariableValue(5).L == 0 &&
+		copia.getVariableValue(6).L == 15 &&
+		copia.getVariableValue(7).L == 10 &&
+		copia.getVariableValue(8).L == 9 &&
+		copia.getVariableValue(9).L == 28 &&
+		copia.getVariableValue(10).L == 11 &&
+		copia.getVariableValue(11).L == 5 &&
+		copia.getVariableValue(12).L == 0 &&
+		copia.getVariableValue(13).L == 13 &&
+		copia.getVariableValue(14).L == 7 &&
+		copia.getVariableValue(15).L == 1 &&
+		copia.getVariableValue(16).L == 31 &&
+		copia.getVariableValue(17).L == 27 &&
+		copia.getVariableValue(18).L == 12 &&
+		copia.getVariableValue(19).L == 0
+		) {
+		cout << "Solución exacta encontradaq111!" << endl;
+	}
+
 
 	// Evaluar la solución original antes de las perturbaciones.
 	copia.getProblem()->evaluate(&copia);
 	copia.getProblem()->evaluateConstraints(&copia);
+	if (copia.getNumberOfViolatedConstraints() < 0) {
+		cout << copia.getNumberOfViolatedConstraints();
+	}
 	/*imprimirSolucion(copia);*/
 	/*cout << copia.getObjective(0) << " --- " << solucion.getObjective(0) << endl;*/
 
@@ -271,6 +301,32 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 	imprimirSolucion(copia);
 	cout << "copia" << endl;*/
 
+	if (
+		copia.getVariableValue(0).L == 17 &&
+		copia.getVariableValue(1).L == 19 &&
+		copia.getVariableValue(2).L == 21 &&
+		copia.getVariableValue(3).L == 6 &&
+		copia.getVariableValue(4).L == 24 &&
+		copia.getVariableValue(5).L == 0 &&
+		copia.getVariableValue(6).L == 15 &&
+		copia.getVariableValue(7).L == 10 &&
+		copia.getVariableValue(8).L == 9 &&
+		copia.getVariableValue(9).L == 28 &&
+		copia.getVariableValue(10).L == 11 &&
+		copia.getVariableValue(11).L == 5 &&
+		copia.getVariableValue(12).L == 0 &&
+		copia.getVariableValue(13).L == 13 &&
+		copia.getVariableValue(14).L == 7 &&
+		copia.getVariableValue(15).L == 1 &&
+		copia.getVariableValue(16).L == 31 &&
+		copia.getVariableValue(17).L == 27 &&
+		copia.getVariableValue(18).L == 12 &&
+		copia.getVariableValue(19).L == 0
+		) {
+		cout << "Solución exacta encontrada!222" << endl;
+	}
+
+
 	bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
 	if (maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) > solucion.getObjective(0))
 	{
@@ -278,7 +334,7 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 	}
 	else if (!maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) < solucion.getObjective(0))
 	{
-		return copia;;
+		return copia;
 	}
 
 
@@ -310,7 +366,37 @@ void busquedaLocalIterada(SolutionSet* solucionesIniciales) {
 
 		// Copiar el array original para no dañarlo
 		for (int j = 0; j < copia.getNumVariables(); j++) {
+
 			copia.setVariableValue(j, solucionesIniciales->get(i).getVariableValue(j));
+			
+
+		}
+
+
+		if (
+			copia.getVariableValue(0).L == 17 &&
+			copia.getVariableValue(1).L == 19 &&
+			copia.getVariableValue(2).L == 21 &&
+			copia.getVariableValue(3).L == 6 &&
+			copia.getVariableValue(4).L == 24 &&
+			copia.getVariableValue(5).L == 0 &&
+			copia.getVariableValue(6).L == 15 &&
+			copia.getVariableValue(7).L == 10 &&
+			copia.getVariableValue(8).L == 9 &&
+			copia.getVariableValue(9).L == 28 &&
+			copia.getVariableValue(10).L == 11 &&
+			copia.getVariableValue(11).L == 5 &&
+			copia.getVariableValue(12).L == 0 &&
+			copia.getVariableValue(13).L == 13 &&
+			copia.getVariableValue(14).L == 7 &&
+			copia.getVariableValue(15).L == 1 &&
+			copia.getVariableValue(16).L == 31 &&
+			copia.getVariableValue(17).L == 27 &&
+			copia.getVariableValue(18).L == 12 &&
+			copia.getVariableValue(19).L == 0
+			) {
+			cout << "NO TIENE SENTIDO ESTO" << endl;
+			cout << i << endl;
 		}
 
 		// Evaluar la copia de la solución original
@@ -325,6 +411,8 @@ void busquedaLocalIterada(SolutionSet* solucionesIniciales) {
 		
 		Solution nuevaSolucion = perturbacionPermutacionVRP(copia);
 		
+
+
 		/*imprimirSolucion(nuevaSolucion);
 		cout << nuevaSolucion.getObjective(0) << endl;*/
 
@@ -382,8 +470,11 @@ void miGenetico::execute() {
 
 		this->problem_->evaluate(&nueva);
 		this->problem_->evaluateConstraints(&nueva);
+		
+		 
 
 		this->pob->add(nueva);
+			
 
 		if (first) {
 			best->set(0, nueva);
@@ -457,7 +548,7 @@ void miGenetico::execute() {
 		//cout << "---------------------- " << endl;
 		//cout << endl; cout << endl;
 
-		busquedaLocalIterada(hijosGenerados);//hijos generados
+		//busquedaLocalIterada(hijosGenerados);//hijos generados
 
 
 		Interval mejorHastaAhora = this->best->get(0).getObjective(0);
