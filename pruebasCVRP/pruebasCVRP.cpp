@@ -17,10 +17,10 @@ using namespace std;
  
 int main()
 {
-    std::mt19937 rng(320);  // Semilla fija
-    srand(320);  // Semilla fija
-    RandomNumber* rnd = RandomNumber::getInstance();
-           rnd->setSeed(320);
+    //std::mt19937 rng(320);  // Semilla fija
+    //srand(320);  // Semilla fija
+    //RandomNumber* rnd = RandomNumber::getInstance();
+    //       rnd->setSeed(320);
 
     for (int i = 0; i < 15; i++)
     {
@@ -36,9 +36,9 @@ int main()
 
         ProblemBuilder::add("miCVRP", new miCVRP());
 
-//      Algorithm* alg = AlgorithmBuilder::execute("_INPUT/config_GA.txt");
+      Algorithm* alg = AlgorithmBuilder::execute("_INPUT/config_GA.txt");
 
-        Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA.txt");
+//        Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA.txt");
        //Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA2.txt");
         alg->execute();
         ofstream out("Salida-CVRP.txt");

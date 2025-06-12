@@ -141,7 +141,7 @@ void miCVRP::evaluateConstraints(Solution* s) {
 
     int numberViolatedConstraints = 0;
     int totalofVi = 0;
-    int currentVehicle = 0;  // Inicializar en 0 (primera ruta inicia implícitamente)
+    int currentVehicle = 0;  // Inicializar en 0 (primera ruta inicia en 0)
 
     for (int i = 0; i < this->getNumberOfVariables(); i++) {
         int nodoActual = (int)vars[i].L;

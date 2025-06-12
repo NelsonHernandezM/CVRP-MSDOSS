@@ -198,32 +198,6 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 
 	}
 
-	if (
-		copia.getVariableValue(0).L == 17 &&
-		copia.getVariableValue(1).L == 19 &&
-		copia.getVariableValue(2).L == 21 &&
-		copia.getVariableValue(3).L == 6 &&
-		copia.getVariableValue(4).L == 24 &&
-		copia.getVariableValue(5).L == 0 &&
-		copia.getVariableValue(6).L == 15 &&
-		copia.getVariableValue(7).L == 10 &&
-		copia.getVariableValue(8).L == 9 &&
-		copia.getVariableValue(9).L == 28 &&
-		copia.getVariableValue(10).L == 11 &&
-		copia.getVariableValue(11).L == 5 &&
-		copia.getVariableValue(12).L == 0 &&
-		copia.getVariableValue(13).L == 13 &&
-		copia.getVariableValue(14).L == 7 &&
-		copia.getVariableValue(15).L == 1 &&
-		copia.getVariableValue(16).L == 31 &&
-		copia.getVariableValue(17).L == 27 &&
-		copia.getVariableValue(18).L == 12 &&
-		copia.getVariableValue(19).L == 0
-		) {
-		cout << "Solución exacta encontradaq111!" << endl;
-	}
-
-
 	// Evaluar la solución original antes de las perturbaciones.
 	copia.getProblem()->evaluate(&copia);
 	copia.getProblem()->evaluateConstraints(&copia);
@@ -233,7 +207,7 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 	/*imprimirSolucion(copia);*/
 	/*cout << copia.getObjective(0) << " --- " << solucion.getObjective(0) << endl;*/
 
-	// Vector para almacenar los índices de las ciudades que no se deben mover (por ejemplo, valor 0 o -1).
+	// Vector para almacenar los índices  que no se deben mover (por ejemplo, valor 0 o -1).
 	std::vector<std::pair<int, int>> indicesYValores;
 
 	// Contar 0 y -1 que no deben ser modificadas (por ejemplo, 0 y -1).
@@ -300,41 +274,20 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 
 	imprimirSolucion(copia);
 	cout << "copia" << endl;*/
-
-	if (
-		copia.getVariableValue(0).L == 17 &&
-		copia.getVariableValue(1).L == 19 &&
-		copia.getVariableValue(2).L == 21 &&
-		copia.getVariableValue(3).L == 6 &&
-		copia.getVariableValue(4).L == 24 &&
-		copia.getVariableValue(5).L == 0 &&
-		copia.getVariableValue(6).L == 15 &&
-		copia.getVariableValue(7).L == 10 &&
-		copia.getVariableValue(8).L == 9 &&
-		copia.getVariableValue(9).L == 28 &&
-		copia.getVariableValue(10).L == 11 &&
-		copia.getVariableValue(11).L == 5 &&
-		copia.getVariableValue(12).L == 0 &&
-		copia.getVariableValue(13).L == 13 &&
-		copia.getVariableValue(14).L == 7 &&
-		copia.getVariableValue(15).L == 1 &&
-		copia.getVariableValue(16).L == 31 &&
-		copia.getVariableValue(17).L == 27 &&
-		copia.getVariableValue(18).L == 12 &&
-		copia.getVariableValue(19).L == 0
-		) {
-		cout << "Solución exacta encontrada!222" << endl;
-	}
+ 
 
 
 	bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
 	if (maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) > solucion.getObjective(0))
 	{
+		cout << "MEJORE" << endl;
 		return copia;
 	}
 	else if (!maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) < solucion.getObjective(0))
 	{
 		return copia;
+
+		cout << "MEJORE" << endl;
 	}
 
 
@@ -372,32 +325,7 @@ void busquedaLocalIterada(SolutionSet* solucionesIniciales) {
 
 		}
 
-
-		if (
-			copia.getVariableValue(0).L == 17 &&
-			copia.getVariableValue(1).L == 19 &&
-			copia.getVariableValue(2).L == 21 &&
-			copia.getVariableValue(3).L == 6 &&
-			copia.getVariableValue(4).L == 24 &&
-			copia.getVariableValue(5).L == 0 &&
-			copia.getVariableValue(6).L == 15 &&
-			copia.getVariableValue(7).L == 10 &&
-			copia.getVariableValue(8).L == 9 &&
-			copia.getVariableValue(9).L == 28 &&
-			copia.getVariableValue(10).L == 11 &&
-			copia.getVariableValue(11).L == 5 &&
-			copia.getVariableValue(12).L == 0 &&
-			copia.getVariableValue(13).L == 13 &&
-			copia.getVariableValue(14).L == 7 &&
-			copia.getVariableValue(15).L == 1 &&
-			copia.getVariableValue(16).L == 31 &&
-			copia.getVariableValue(17).L == 27 &&
-			copia.getVariableValue(18).L == 12 &&
-			copia.getVariableValue(19).L == 0
-			) {
-			cout << "NO TIENE SENTIDO ESTO" << endl;
-			cout << i << endl;
-		}
+		 
 
 		// Evaluar la copia de la solución original
 		copia.getProblem()->evaluate(&copia);
@@ -548,7 +476,7 @@ void miGenetico::execute() {
 		//cout << "---------------------- " << endl;
 		//cout << endl; cout << endl;
 
-		//busquedaLocalIterada(hijosGenerados);//hijos generados
+		busquedaLocalIterada(hijosGenerados);//hijos generados
 
 
 		Interval mejorHastaAhora = this->best->get(0).getObjective(0);
@@ -560,11 +488,17 @@ void miGenetico::execute() {
 			for (int i = 0; i < 2 * this->N; i++)
 			{
 
-				if (maximization && hijosGenerados->get(i).getObjective(0) > best->get(0).getObjective(0)) {
+			
+
+				if (maximization && hijosGenerados->get(i).getObjective(0) > best->get(0).getObjective(0) &&
+					hijosGenerados->get(i).getNumberOfViolatedConstraints() == 0) {
 					best->set(0, hijosGenerados->get(i));
+					/*cout << "un hijo es mejor que todos" << endl;*/
 				}
-				else if (!maximization && hijosGenerados->get(i).getObjective(0) < best->get(0).getObjective(0)) {
+				else if (!maximization && hijosGenerados->get(i).getObjective(0) < best->get(0).getObjective(0) &&
+					hijosGenerados->get(i).getNumberOfViolatedConstraints() == 0) {
 					best->set(0, hijosGenerados->get(i));
+				/*	cout << "un hijo mejor que todos" << endl;*/
 				}
 
 
@@ -575,12 +509,16 @@ void miGenetico::execute() {
 		{
 			for (int i = 0; i < 2 * this->N; i++)
 			{
-				if (maximization && hijosGenerados->get(j).getObjective(0) > pob->get(i).getObjective(0)) {
+				if (maximization && hijosGenerados->get(j).getObjective(0) > pob->get(i).getObjective(0) &&
+					hijosGenerados->get(j).getNumberOfViolatedConstraints() == 0) {
 					pob->set(i, hijosGenerados->get(j));
+					/*cout << "un hijo mejor" << endl;*/
 					break;
 				}
-				else if (!maximization && hijosGenerados->get(j).getObjective(0) < pob->get(i).getObjective(0)) {
+				else if (!maximization && hijosGenerados->get(j).getObjective(0) < pob->get(i).getObjective(0) &&
+					hijosGenerados->get(j).getNumberOfViolatedConstraints() == 0) {
 					pob->set(i, hijosGenerados->get(j));
+					/*cout << "un hijo mejor" << endl;*/
 					break;
 				}
 
