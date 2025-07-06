@@ -139,12 +139,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CVRP.cpp" />
+    <ClCompile Include="miCEVRP.cpp" />
+    <ClCompile Include="miCruza.cpp" />
     <ClCompile Include="miCVRP.cpp" />
     <ClCompile Include="miGenetico.cpp" />
     <ClCompile Include="miMutacion.cpp" />
     <ClCompile Include="pruebasCVRP.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CVRP.h" />
+    <ClInclude Include="miCEVRP.h" />
+    <ClInclude Include="miCruza.h" />
     <ClInclude Include="miCVRP.h" />
     <ClInclude Include="miGenetico.h" />
     <ClInclude Include="miMutacion.h" />

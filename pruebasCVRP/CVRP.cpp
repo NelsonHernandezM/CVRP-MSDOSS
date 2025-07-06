@@ -1,44 +1,80 @@
-ï»¿ 
 
-#include "miCVRP.h"
+
+#include "CVRP.h"
 #include <algorithm>
 #include <windows.h>
 #include <string>
 
 
-miCVRP::miCVRP() {
+CVRP::CVRP() {
 
 }
 
-void miCVRP::initialize(Requirements* config) {
-  
+static int** getCostMatrix(int** coordenadas, int n) {
+  /*  cout << endl; cout << endl;*/
+    int** costMatrix = new int* [n];
+    for (int i = 0; i < n; i++) {
+        costMatrix[i] = new int[n];
+    }
+
+    // Calculamos la distancia euclidiana entre cada par de nodos
+    for (int i = 0; i < n; i++) {
+        int xi = coordenadas[i][0];
+        int yi = coordenadas[i][1];
+        for (int j = 0; j < n; j++) {
+            int xj = coordenadas[j][0];
+            int yj = coordenadas[j][1];
+            double distancia = sqrt((xi - xj) * (xi - xj) + (yi - yj) * (yi - yj));
+            costMatrix[i][j] = static_cast<int>(round(distancia));
+            /*cout << costMatrix[i][j]<< " ";*/
+        }
+      /*  cout << endl;*/
+    }
+  /*  cout << endl;*/
+    return costMatrix;
+}
+
+
+void CVRP::initialize(Requirements* config) {
+
+    config->addValue("#DIMENSION", Constantes::INT);
+    this->par = config->load();
+    this->dimension = this->par->get("#DIMENSION").getInt();
+
+    config->addMatrix("#COORDS", Constantes::INT, this->dimension, 2);
     config->addValue("#NUM-CUSTOMERS", Constantes::INT);
+    config->addValue("#VEHICLES", Constantes::INT);
+    config->addValue("#CAPACITY", Constantes::INT);  // O #CAPACITY
+
+    config->addVector("#DEMAND", Constantes::INT, this->dimension);
+    config->addMatrix("#COST-MATRIX", Constantes::INT, this->dimension, this->dimension);
 
     this->par = config->load();
+    this->coords = (int**)this->par->get("#COORDS").getValue();
+    this->num_Customers = this->par->get("#DIMENSION").getInt() - 1;
 
-    this->num_Customers = this->par->get("#NUM-CUSTOMERS").getInt();
 
-    
-    config->addValue("#NUM-VEHICLES", Constantes::INT);
-    config->addValue("#MAX-CAPACITY", Constantes::INT);
-    config->addMatrix ("#ADJ-MATRIX", Constantes::INT,this->num_Customers+1,this->num_Customers+1);
-    config->addMatrix("#COST-MATRIX", Constantes::INT,this->num_Customers + 1,this->num_Customers + 1);
-    config->addVector("#DEMANDS", Constantes::INT,this->num_Customers);
+    this->cost_Matrix = (int**)getCostMatrix(coords, dimension);
 
-    this->par = config->load();
-     
-    this->num_Vehicles = this->par->get("#NUM-VEHICLES").getInt();
-    this->max_Capacity = this->par->get("#MAX-CAPACITY").getInt();
-    this->customer_Demand = (int*)this->par->get("#DEMANDS").getValue();
-    
-    this->adj_Matrix = (int**)this->par->get("#ADJ-MATRIX").getValue();
+    this->num_Vehicles = this->par->get("#VEHICLES").getInt();
+    this->max_Capacity = this->par->get("#CAPACITY").getInt();  // <- asegúrate que coincida
+    this->customer_Demand = (int*)this->par->get("#DEMAND").getValue();
 
-    this->cost_Matrix = (int**)this->par->get("#COST-MATRIX").getValue();
+  /*  cout << "feo"<<endl;
+
+    for (size_t i = 0; i < dimension; i++)
+    {
+        for (size_t j = 0; j < dimension; j++)
+        {
+            cout << cost_Matrix[i][j] <<" ";
+        }
+        cout << endl;
+    }*/
 
     //DEFINIR PAR METROS DE CONTROL
-    this->numberOfVariables_ = (this->num_Customers+num_Vehicles);
+    this->numberOfVariables_ = (this->num_Customers + num_Vehicles);
     this->numberOfObjectives_ = 1;
-    this->numberOfConstraints_ = 2;
+    this->numberOfConstraints_ = 1;
 
 
 
@@ -56,16 +92,16 @@ void miCVRP::initialize(Requirements* config) {
         this->objs_type[obj] = Constantes::MINIMIZATION;
     }
 
-     
+
 
 }
 
 
 
 
- 
-    // 
-void miCVRP::evaluate(Solution* s) {
+
+// 
+void CVRP::evaluate(Solution* s) {
     Interval* vars = s->getDecisionVariables();
     int distanciaTotal = 0;
     int nodoPrevio = 0;  // Start from the depot to the first node (nodo 0)
@@ -96,7 +132,7 @@ void miCVRP::evaluate(Solution* s) {
 
         }
 
-        /*cout << "Nodo " << nodoActual << " en posiciÃ³n " << i << endl;*/
+        /*cout << "Nodo " << nodoActual << " en posición " << i << endl;*/
 
         if (nodoActual == 0) {
 
@@ -108,7 +144,7 @@ void miCVRP::evaluate(Solution* s) {
             }*/
             distanciaTotal += cost_Matrix[nodoPrevio][nodoActual];
 
-           
+
 
             // reset nodoPrevio, we start from depot in the new route.
             nodoPrevio = 0;
@@ -116,27 +152,27 @@ void miCVRP::evaluate(Solution* s) {
         else {
             // we add the cost travel from nodoPrevio to nodoActual 
             distanciaTotal += cost_Matrix[nodoPrevio][nodoActual];
-           /* if (!(cost_Matrix[nodoPrevio][nodoActual] == 100000)) {
-                cout << "nodo: " << nodoPrevio << "nodoActual: " << nodoActual <<endl;
-                cout << "sumando: " << cost_Matrix[nodoPrevio][nodoActual] << endl;
-            }*/
-           /* cout << "Distancia aÃ±adida: " << cost_Matrix[nodoPrevio][nodoActual]
-                << " (" << nodoPrevio << " -> " << nodoActual << ")" << endl;*/
+            /* if (!(cost_Matrix[nodoPrevio][nodoActual] == 100000)) {
+                 cout << "nodo: " << nodoPrevio << "nodoActual: " << nodoActual <<endl;
+                 cout << "sumando: " << cost_Matrix[nodoPrevio][nodoActual] << endl;
+             }*/
+             /* cout << "Distancia añadida: " << cost_Matrix[nodoPrevio][nodoActual]
+                  << " (" << nodoPrevio << " -> " << nodoActual << ")" << endl;*/
 
-            // update nodoprevio
+                  // update nodoprevio
             nodoPrevio = nodoActual;
         }
     }
     //if (distanciaTotal < 2000) {
     //    cout << "Distancia total: " << distanciaTotal << endl;
     //} /* cout << "xxxxxxxxx" << endl;
-   
+
 
     s->setObjective(0, distanciaTotal);
     //cout << endl;
 }
 
-void miCVRP::evaluateConstraints(Solution* s) {
+void CVRP::evaluateConstraints(Solution* s) {
 
     Interval* vars = s->getDecisionVariables();
     int* cargaRutas = new int[this->num_Vehicles]();
@@ -149,19 +185,20 @@ void miCVRP::evaluateConstraints(Solution* s) {
         int nodoActual = (int)vars[i].L;
 
         if (nodoActual == 0) {
-            // Verificar capacidad del vehÃ­culo ACTUAL ()
+            // Verificar capacidad del vehículo ACTUAL ()
             if (cargaRutas[currentVehicle] > max_Capacity) {
                 numberViolatedConstraints++;
                 totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
             }
-            // Cambiar al siguiente vehÃ­culo solo si hay depÃ³sito explÃ­cito
+            // Cambiar al siguiente vehículo solo si hay depósito explícito
             currentVehicle++;
-            if (currentVehicle >= this->num_Vehicles) { 
+            if (currentVehicle >= this->num_Vehicles) {
                 numberViolatedConstraints++;
-                break; }
+                break;
+            }
         }
         else if (nodoActual == -1) {
-            // Verificar capacidad del vehÃ­culo actual antes de terminar
+            // Verificar capacidad del vehículo actual antes de terminar
             if (cargaRutas[currentVehicle] > max_Capacity) {
                 numberViolatedConstraints++;
                 totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
@@ -169,19 +206,19 @@ void miCVRP::evaluateConstraints(Solution* s) {
             break;
         }
         else if (nodoActual > 0 && currentVehicle < this->num_Vehicles) {
-            // Sumar demanda al vehÃ­culo actual (inicia en 0)
-            cargaRutas[currentVehicle] += customer_Demand[nodoActual - 1];
+            // Sumar demanda al vehículo actual (inicia en 0)
+            cargaRutas[currentVehicle] += customer_Demand[nodoActual ];
         }
     }
 
-    // Verificar el Ãºltimo vehÃ­culo (si no terminÃ³ en 0 o -1)
+    // Verificar el último vehículo (si no terminó en 0 o -1)
     if (currentVehicle < this->num_Vehicles && cargaRutas[currentVehicle] > max_Capacity) {
         numberViolatedConstraints++;
         totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
     }
 
 
-     
+
 
     for (int i = 0; i < this->getNumberOfVariables() - 1; i++) {
         int nodoActual = (int)vars[i].L;
@@ -192,9 +229,9 @@ void miCVRP::evaluateConstraints(Solution* s) {
             break;
         }
         //if the arc does not exist ...
-        if (adj_Matrix[nodoActual][nodoSiguiente] == 0) {
+      /*  if (adj_Matrix[nodoActual][nodoSiguiente] == 0) {
             numberViolatedConstraints++;
-        }
+        }*/
 
     }
 
@@ -203,25 +240,26 @@ void miCVRP::evaluateConstraints(Solution* s) {
 
     s->setNumberOfViolatedConstraints(numberViolatedConstraints);
     s->setOverallConstraintViolation(-totalofVi);
-   /* cout << "violated: " << numberViolatedConstraints << endl;*/
+    /* cout << "violated: " << numberViolatedConstraints << endl;*/
 
-    delete[] cargaRutas; 
+    delete[] cargaRutas;
 }
 
 
 
-Solution miCVRP::generateRandomSolution() {
+Solution CVRP::generateRandomSolution() {
     RandomNumber* rnd = rnd->getInstance();
     Solution sol_new(this);
 
     // Generate random number between half and the total number of vehicle - 1
     // cambiar 
-    int numVehiculos = rnd->nextInt((this->num_Vehicles-1) / 2) + ((this->num_Vehicles-1) / 2) + 1;
-    numVehiculos = 5;
-    // Convertir a cadena ancha
+    int numVehiculos = rnd->nextInt((this->num_Vehicles - 1) / 2) + ((this->num_Vehicles - 1) / 2) + 1;
+    numVehiculos = this->num_Vehicles;
+    // numVehiculos = 5;
+     // Convertir a cadena ancha
     std::wstring mensaje = L"Valor de n: " + std::to_wstring(numVehiculos) + L"\n";
 
-    // Usar la versiÃ³n wide (Unicode)
+    // Usar la versión wide (Unicode)
     OutputDebugStringW(mensaje.c_str());
 
 
@@ -256,7 +294,7 @@ Solution miCVRP::generateRandomSolution() {
         solArray[0] = auxPerm[0]; // the first element is always a customer. 
         int clientesInsertados = 1;
         int cerosInsertados = 0;
-        int clientesDesdeUltimoCero = 1; // Contador de clientes desde el Ãºltimo 0
+        int clientesDesdeUltimoCero = 1; // Contador de clientes desde el último 0
         ///////CAMBIAR ESTO
         for (int i = 1; i < tamSol; ++i) {
             if (cerosInsertados < numVehiculos - 1) {
@@ -290,12 +328,12 @@ Solution miCVRP::generateRandomSolution() {
             }
         }
 
-        //// Asegurar que el Ãºltimo elemento sea 0 si hay vehÃ­culos sin usar
+        //// Asegurar que el último elemento sea 0 si hay vehículos sin usar
         //if (cerosInsertados < numVehiculos - 1) {
         //    solArray[tamSol - 1] = 0;
         //}
 
-        // Guardar soluciÃ³n en sol_new
+        // Guardar solución en sol_new
         for (int i = 0; i < tamSol; ++i) {
             sol_new.setVariableValue(i, solArray[i]);
         }
@@ -303,17 +341,17 @@ Solution miCVRP::generateRandomSolution() {
         this->evaluate(&sol_new);
         this->evaluateConstraints(&sol_new);
 
-        //// Si hay restricciones violadas, intentar con mÃ¡s vehÃ­culos
+        //// Si hay restricciones violadas, intentar con más vehículos
         //if (sol_new.getNumberOfViolatedConstraints() > 0 && numVehiculos < this->num_Vehicles) {
         //    numVehiculos++;
         //}
 
-        
+
         delete[] conjuntoClientes;
         delete[] auxPerm;
         delete[] solArray;
 
-    } while (sol_new.getNumberOfViolatedConstraints()>0 );
+    } while (sol_new.getNumberOfViolatedConstraints() > 0);
 
     this->evaluate(&sol_new);
     this->evaluateConstraints(&sol_new);
@@ -321,4 +359,3 @@ Solution miCVRP::generateRandomSolution() {
     return sol_new;
 }
 
- 

@@ -8,6 +8,7 @@
 #include <tools/builders/MutationBuilder.h>
 #include "miGenetico.h"
 #include "miMutacion.h"
+#include "CVRP.h"
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -17,15 +18,15 @@ using namespace std;
  
 int main()
 {
-    //std::mt19937 rng(320);  // Semilla fija
-    //srand(320);  // Semilla fija
-    //RandomNumber* rnd = RandomNumber::getInstance();
-    //       rnd->setSeed(320);
+    std::mt19937 rng(310);  // Semilla fija
+    srand(310);  // Semilla fija
+    RandomNumber* rnd = RandomNumber::getInstance();
+           rnd->setSeed(310);
 
-    for (int i = 0; i < 15; i++)
+    for (int i = 0; i < 10; i++)
     {
          
-        //auto start = std::chrono::high_resolution_clock::now(); // Inicio del tiempo
+        auto start = std::chrono::high_resolution_clock::now(); // Inicio del tiempo
 
         cout << i << endl;
 
@@ -36,9 +37,9 @@ int main()
 
         ProblemBuilder::add("miCVRP", new miCVRP());
 
-      Algorithm* alg = AlgorithmBuilder::execute("_INPUT/config_GA.txt");
+     Algorithm* alg = AlgorithmBuilder::execute("_INPUT/config_GA2.txt");
 
-//        Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA.txt");
+       // Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA.txt");
        //Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA2.txt");
         alg->execute();
         ofstream out("Salida-CVRP.txt");
@@ -51,9 +52,9 @@ int main()
 
        
 
-      /*  auto end = std::chrono::high_resolution_clock::now();  
+        auto end = std::chrono::high_resolution_clock::now();  
         std::chrono::duration<double> duration = end - start; 
-        std::cout << "Iteración " << i << " tiempo: " << duration.count() << " segundos" << std::endl;*/
+        std::cout << "Iteración " << i << " tiempo: " << duration.count() << " segundos" << std::endl;
 
        
     }

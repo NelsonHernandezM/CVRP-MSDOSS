@@ -6,7 +6,7 @@
 #N 5
  
 
-#Problem-Instance _INPUT/instancia_simpleCVRP-CC.txt
+#Problem-Instance _INPUT/instancia_vrp.txt
 
 #mutation miMutacion
 #miMutacion-probability 0.2

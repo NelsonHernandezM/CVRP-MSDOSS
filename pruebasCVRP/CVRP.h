@@ -6,7 +6,7 @@
 #include "../WindowsRequirements.h"
 
 
-class miCVRP : public Problem {
+class CVRP : public Problem {
 	Requirements* config;
 	Parameters* par;
 
@@ -16,17 +16,19 @@ class miCVRP : public Problem {
 	int** adj_Matrix;
 	int** cost_Matrix;
 	int* customer_Demand;
-	
-	//int dimension;
-	//int optimal;
-	
+
+	int dimension;
+	int optimal;
+	int** coords;
+
+
 
 
 
 public:
-	miCVRP();
+	CVRP();
 	void initialize(Requirements* config) override;
-	void evaluate(Solution*  s) override;
+	void evaluate(Solution* s) override;
 	void evaluateConstraints(Solution* s) override;
 	Solution generateRandomSolution();
 };
