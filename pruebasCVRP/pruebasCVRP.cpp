@@ -4,6 +4,7 @@
 #include <iostream>
 #include <tools/AlgorithmBuilder.h>
 #include "miCVRP.h"
+#include "miCEVRP.h"
 #include<tools/builders/ProblemBuilder.h>
 #include <tools/builders/MutationBuilder.h>
 #include "miGenetico.h"
@@ -35,9 +36,9 @@ int main()
         AlgorithmBuilder::add("miGenetico", new miGenetico());
 
 
-        ProblemBuilder::add("miCVRP", new miCVRP());
+        ProblemBuilder::add("miCEVRP", new miCEVRP());
 
-     Algorithm* alg = AlgorithmBuilder::execute("_INPUT/config_GA2.txt");
+     Algorithm* alg = AlgorithmBuilder::execute("_INPUT-EVRP/config_GA.txt");
 
        // Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA.txt");
        //Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA2.txt");

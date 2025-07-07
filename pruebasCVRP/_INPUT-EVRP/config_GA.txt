@@ -1,0 +1,20 @@
+====================================================================================================
+#Algorithm miGenetico
+
+//parámetros
+#MAX_GENERATIONS 10000
+#N 4
+ 
+
+#Problem-Instance _INPUT-EVRP/evrpInstancia.txt
+
+#mutation miMutacion
+#miMutacion-probability 0.2
+#selection RandomSelection
+#crossover SBXCrossover
+#SBXCrossover-probability 1.0
+#SBXCrossover-distributionIndex 15.0
+
+
+
+=====================================================================================================

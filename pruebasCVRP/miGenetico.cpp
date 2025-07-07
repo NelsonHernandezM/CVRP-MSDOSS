@@ -3,6 +3,8 @@
 #include <algorithm>
 #include "utility"
 #include <vector>
+#include "miCEVRP.h"
+
 //454 busquedalocal
 miGenetico::miGenetico() :Algorithm(NULL) {
 
@@ -198,6 +200,7 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 	if (copia.getNumberOfViolatedConstraints() < 0) {
 		cout << copia.getNumberOfViolatedConstraints();
 	}
+ 
 	/*imprimirSolucion(copia);*/
 	/*cout << copia.getObjective(0) << " --- " << solucion.getObjective(0) << endl;*/
 
@@ -207,7 +210,7 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 	// Contar 0 y -1 que no deben ser modificadas (por ejemplo, 0 y -1).
 	int contadorCiudadesFijas = 0;
 	for (int i = 0; i < copia.getNumVariables(); i++) {
-		if (copia.getVariableValue(i).L == 0 || copia.getVariableValue(i).L == -1) {
+		if (copia.getVariableValue(i).L == 0 || copia.getVariableValue(i).L == -1  ) {
 			contadorCiudadesFijas++;
 			indicesYValores.push_back(std::make_pair(i, copia.getVariableValue(i).L)); // Guardar el índice y valor.
 		}
