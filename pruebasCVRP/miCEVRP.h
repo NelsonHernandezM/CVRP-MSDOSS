@@ -16,7 +16,7 @@ class miCEVRP : public Problem {
 	int dimension;
 	int num_stations;
 	int max_Capacity;
-	int energy_capacity;
+	 
 	double energy_Capacity;
 	double consumption_Rate;
 	int** coords;
@@ -44,6 +44,7 @@ public:
 	Solution generateRandomSolution();
 	bool isStation(int nodo);
 	bool isDepot(int nodo);
+	bool isCustomer(int nodo);
 	int encontrarEstacionCercana(int nodo);
 
 	 

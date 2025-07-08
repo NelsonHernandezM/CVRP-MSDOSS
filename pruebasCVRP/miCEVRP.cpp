@@ -1,14 +1,23 @@
-
+ï»¿
 
 #include "miCEVRP.h"
 #include <algorithm>
 #include <windows.h>
 #include <string>
 #include <iostream>
-using namespace std;
+ 
 
 miCEVRP::miCEVRP() {
 
+}
+
+void imprimirSolucion(Solution* s) {
+    Interval* vars = s->getDecisionVariables();
+   
+    for (int i = 0; i < s->getNumVariables(); ++i) {
+           cout << vars[i].L << " ";
+    }
+    cout << endl;
 }
 
 // 0 = depot, 1 = customer, 2 = station
@@ -16,10 +25,14 @@ bool miCEVRP::isDepot(int nodo) {
     return this->tipoNodo[nodo] == 0;
 }
 
+bool  miCEVRP::isCustomer(int nodo) {
+    return this->tipoNodo[nodo] == 1;
+}
 
 bool  miCEVRP::isStation(int nodo) {
     return this->tipoNodo[nodo] == 2;
 }
+
 
 
 
@@ -67,7 +80,7 @@ void miCEVRP::initialize(Requirements* config) {
     this->num_stations = this->par->get("#NUM-STATIONS").getInt();
 
     config->addValue("#CAPACITY", Constantes::INT);
-    config->addValue("#ENERGY_CAPACITY", Constantes::INT);
+    config->addValue("#ENERGY_CAPACITY", Constantes::DOUBLE);
     config->addValue("#CONSUMPTION_RATE", Constantes::DOUBLE);
     config->addValue("#EDGE_WEIGHT_TYPE", Constantes::STRING);
     config->addMatrix("#COORDS", Constantes::INT, this->dimension, 2);
@@ -84,7 +97,7 @@ void miCEVRP::initialize(Requirements* config) {
     this->num_Vehicles = this->par->get("#VEHICLES").getInt();
 
     this->max_Capacity = this->par->get("#CAPACITY").getInt();
-    this->energy_Capacity = this->par->get("#ENERGY_CAPACITY").getInt();
+    this->energy_Capacity = this->par->get("#ENERGY_CAPACITY").getDouble();
     this->consumption_Rate = this->par->get("#CONSUMPTION_RATE").getDouble();
     this->coords = (int**)this->par->get("#COORDS").getValue();
     
@@ -150,8 +163,11 @@ void miCEVRP::initialize(Requirements* config) {
 
 // 
 void miCEVRP::evaluate(Solution* s) {
+
     Interval* vars = s->getDecisionVariables();
     int distanciaTotal = 0;
+    double totalEnergyConsumed = 0.0; //for all de routes
+
     int nodoPrevio = 0;  // Start from the depot to the first node (nodo 0)
     //e.g [0,1,2,3,-1] means 0 -> 1 -> 2 -> 3 -> 0
     //e.g 2 [0,1,0,3,-1] means R 0 -> 1 -> 0  R2:0 -> 3 -> 0
@@ -170,6 +186,10 @@ void miCEVRP::evaluate(Solution* s) {
         if (nodoActual == -1) {
             //-1 means the end of the routes, so we need go to from actualNode to depot  ;
             distanciaTotal += cost_Matrix[0][nodoPrevio];
+            
+            totalEnergyConsumed += (cost_Matrix[0][nodoPrevio] * consumption_Rate)  ;
+
+
             /*
             if (!(cost_Matrix[nodoPrevio][nodoActual] == 100000)) {
                 cout << "previo: " << nodoPrevio << "nodo ultimo: " << 0<<endl;
@@ -180,7 +200,7 @@ void miCEVRP::evaluate(Solution* s) {
 
         }
 
-        /*cout << "Nodo " << nodoActual << " en posición " << i << endl;*/
+        /*cout << "Nodo " << nodoActual << " en posiciÃ³n " << i << endl;*/
 
         if (nodoActual == 0) {
 
@@ -192,6 +212,7 @@ void miCEVRP::evaluate(Solution* s) {
             }*/
             distanciaTotal += cost_Matrix[nodoPrevio][nodoActual];
 
+            totalEnergyConsumed += (cost_Matrix[nodoPrevio][nodoActual] * consumption_Rate);
 
 
             // reset nodoPrevio, we start from depot in the new route.
@@ -200,98 +221,132 @@ void miCEVRP::evaluate(Solution* s) {
         else {
             // we add the cost travel from nodoPrevio to nodoActual 
             distanciaTotal += cost_Matrix[nodoPrevio][nodoActual];
+
+            totalEnergyConsumed += (cost_Matrix[nodoPrevio][nodoActual] * consumption_Rate);
+
             /* if (!(cost_Matrix[nodoPrevio][nodoActual] == 100000)) {
                  cout << "nodo: " << nodoPrevio << "nodoActual: " << nodoActual <<endl;
                  cout << "sumando: " << cost_Matrix[nodoPrevio][nodoActual] << endl;
              }*/
-             /* cout << "Distancia añadida: " << cost_Matrix[nodoPrevio][nodoActual]
+             /* cout << "Distancia aÃ±adida: " << cost_Matrix[nodoPrevio][nodoActual]
                   << " (" << nodoPrevio << " -> " << nodoActual << ")" << endl;*/
 
                   // update nodoprevio
             nodoPrevio = nodoActual;
         }
     }
-    //if (distanciaTotal < 2000) {
-    //    cout << "Distancia total: " << distanciaTotal << endl;
-    //} /* cout << "xxxxxxxxx" << endl;
+ 
 
 
     s->setObjective(0, distanciaTotal);
-    //cout << endl;
+    //setObjective(1,totalEnergyConsumed)
+ 
 }
 
 void miCEVRP::evaluateConstraints(Solution* s) {
-
     Interval* vars = s->getDecisionVariables();
     int* cargaRutas = new int[this->num_Vehicles]();
+    double* energiaRestante = new double[this->num_Vehicles];
+    bool* clientesVisitados = new bool[this->num_Customers]();  // <-- Nuevo arreglo para rastrear visitas
 
-    int numberViolatedConstraints = 0;
-    int totalofVi = 0;
-    int currentVehicle = 0;  // Inicializar en 0 (primera ruta inicia en 0)
+    double numberViolatedConstraints = 0.0;
+    double totalViolation = 0;
+    int currentVehicle = 0;
+
+    
+    for (int i = 0; i < this->num_Vehicles; i++) {
+        energiaRestante[i] = this->energy_Capacity;
+    }
+
+    int nodoAnterior = 0;
 
     for (int i = 0; i < this->getNumberOfVariables(); i++) {
         int nodoActual = (int)vars[i].L;
 
-        if (nodoActual == 0) {
-            // Verificar capacidad del vehículo ACTUAL ()
-            if (cargaRutas[currentVehicle] > max_Capacity) {
+        // Fin de la soluciÃ³n
+        if (nodoActual == -1) {
+            double energiaNecesaria = cost_Matrix[nodoAnterior][0] * consumption_Rate;
+            if (energiaRestante[currentVehicle] < energiaNecesaria) {
                 numberViolatedConstraints++;
-                totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
+                totalViolation += (energiaNecesaria - energiaRestante[currentVehicle]);
             }
-            // Cambiar al siguiente vehículo solo si hay depósito explícito
+            break;
+        }
+
+        // Cambio de ruta (nuevo vehÃ­culo)
+        if (nodoActual == 0) {
+            double energiaNecesaria = cost_Matrix[nodoAnterior][0] * consumption_Rate;
+            if (energiaRestante[currentVehicle] < energiaNecesaria) {
+                numberViolatedConstraints++;
+                totalViolation += (energiaNecesaria - energiaRestante[currentVehicle]);
+            }
+
             currentVehicle++;
             if (currentVehicle >= this->num_Vehicles) {
-                numberViolatedConstraints++;
+                numberViolatedConstraints++; // Se excediÃ³ el nÃºmero de vehÃ­culos
                 break;
             }
+
+            nodoAnterior = 0;
+            continue;
         }
-        else if (nodoActual == -1) {
-            // Verificar capacidad del vehículo actual antes de terminar
-            if (cargaRutas[currentVehicle] > max_Capacity) {
-                numberViolatedConstraints++;
-                totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
-            }
-            break;
-        }
-        else if (nodoActual > 0 && currentVehicle < this->num_Vehicles) {
-            // Sumar demanda al vehículo actual (inicia en 0)
-            cargaRutas[currentVehicle] += customer_Demand[nodoActual];
-        }
-    }
 
-    // Verificar el último vehículo (si no terminó en 0 o -1)
-    if (currentVehicle < this->num_Vehicles && cargaRutas[currentVehicle] > max_Capacity) {
-        numberViolatedConstraints++;
-        totalofVi += (cargaRutas[currentVehicle] - max_Capacity);
-    }
+        // Calcular y consumir energÃ­a
+        double consumo = cost_Matrix[nodoAnterior][nodoActual] * consumption_Rate;
+        energiaRestante[currentVehicle] -= consumo;
 
-
-
-
-    for (int i = 0; i < this->getNumberOfVariables() - 1; i++) {
-        int nodoActual = (int)vars[i].L;
-        int nodoSiguiente = (int)vars[i + 1].L;
-
-        //
-        if (nodoSiguiente == -1) {
-            break;
-        }
-        //if the arc does not exist ...
-      /*  if (adj_Matrix[nodoActual][nodoSiguiente] == 0) {
+        if (energiaRestante[currentVehicle] < 0) {
             numberViolatedConstraints++;
-        }*/
+            totalViolation += (-energiaRestante[currentVehicle]);
+        }
 
+        // Si es cliente, acumular demanda y marcarlo como visitado
+        if (isCustomer(nodoActual)) {
+            cargaRutas[currentVehicle] += customer_Demand[nodoActual];
+
+            if (nodoActual >= 1 && nodoActual <= this->num_Customers) {
+                clientesVisitados[nodoActual - 1] = true;
+            }
+        }
+
+        // Si es estaciÃ³n, recargar baterÃ­a
+        if (isStation(nodoActual)) {
+            energiaRestante[currentVehicle] = this->energy_Capacity;
+        }
+
+        nodoAnterior = nodoActual;
     }
 
+    // Verificar capacidad de todos los vehÃ­culos usados
+    for (int v = 0; v <= std::min(currentVehicle, this->num_Vehicles - 1); v++) {
+        if (cargaRutas[v] > this->max_Capacity) {
+            numberViolatedConstraints++;
+            totalViolation += (cargaRutas[v] - this->max_Capacity);
+        }
+    }
 
+    // Penalizar clientes no visitados
+    for (int i = 0; i < this->num_Customers; ++i) {
+        if (!clientesVisitados[i]) {
+            std::wstring m = L"Clientes no insertados: " + std::to_wstring(i+1) + L"\n";
+            OutputDebugStringW(m.c_str());
+            
+            numberViolatedConstraints++;
+            totalViolation += 1.0;  // Puedes cambiar el peso si lo deseas
+        }
+    }std::wstring m2 = L"   "   L"\n";
+    OutputDebugStringW(m2.c_str());
 
-
+    // Guardar penalizaciÃ³n
     s->setNumberOfViolatedConstraints(numberViolatedConstraints);
-    s->setOverallConstraintViolation(-totalofVi);
-    /* cout << "violated: " << numberViolatedConstraints << endl;*/
+    s->setOverallConstraintViolation(-totalViolation);
 
+    // Liberar memoria
     delete[] cargaRutas;
+    delete[] energiaRestante;
+    delete[] clientesVisitados;
 }
+
 
 
 int miCEVRP::encontrarEstacionCercana(int nodo) {
@@ -323,7 +378,7 @@ Solution miCEVRP::generateRandomSolution() {
      // Convertir a cadena ancha
     std::wstring mensaje = L"Valor de n: " + std::to_wstring(numVehiculos) + L"\n";
 
-    // Usar la versión wide (Unicode)
+    // Usar la versiÃ³n wide (Unicode)
     OutputDebugStringW(mensaje.c_str());
 
 
@@ -346,107 +401,121 @@ Solution miCEVRP::generateRandomSolution() {
             auxPerm[i] = conjuntoClientes[indice];
             conjuntoClientes[indice] = conjuntoClientes[clientesRestantes - 1];
             clientesRestantes--;
+       /*     cout << auxPerm[i]<<" ";*/
         }
-
+       /* exit(0);*/
         // create a strucutre for the solucion
         int tamSol = this->numberOfVariables_;
         int* solArray = new int[tamSol];
 
         // INitialize the array with -1
-        memset(solArray, -1, tamSol * sizeof(int));
+        std::memset(solArray, -1, tamSol * sizeof(int));
 
         solArray[0] = auxPerm[0]; // the first element is always a customer. 
         int clientesInsertados = 1;
         int cerosInsertados = 0;
-        int clientesDesdeUltimoCero = 1; // Contador de clientes desde el último 0
+        int clientesDesdeUltimoCero = 1; // Contador de clientes desde el Ãºltimo 0
 
         double currentEnergyConsumption = 0.0;
 
-        currentEnergyConsumption += cost_Matrix[depot][auxPerm[0]] * this->consumption_Rate;
+        int currentDemandVehicle = 0;
+
 
         int nodoAnteriorVisitado = auxPerm[0];
+
+        currentEnergyConsumption += cost_Matrix[depot][auxPerm[0]] * this->consumption_Rate;
+
+        currentDemandVehicle += customer_Demand[auxPerm[0]];
+
 
         int stationToGo = -2;
 
         int vehiculosUSADOS = 1;
  
-
-
         for (int i = 1; i < tamSol; i++)
-        {
+{
+    if (clientesInsertados == this->num_Customers) {
+        break; // Ya insertamos todos los clientes, salimos del ciclo
+    }
 
-            if (clientesInsertados == this->num_Customers) {
-                break; // Ya insertamos todos los clientes, salimos del ciclo
-            }
-             
-            if ((currentEnergyConsumption + (cost_Matrix[nodoAnteriorVisitado][auxPerm[clientesInsertados]] * this->consumption_Rate)  ) > this->energy_Capacity) {
+    int clienteActual = auxPerm[clientesInsertados];
+    double energiaNecesaria = cost_Matrix[nodoAnteriorVisitado][clienteActual] * this->consumption_Rate;
+
+    // Verificamos si la energÃ­a para ir al siguiente cliente excede la capacidad
+    if ((currentEnergyConsumption + energiaNecesaria) > this->energy_Capacity) {
+        // Buscar estaciÃ³n mÃ¡s cercana
+        stationToGo = encontrarEstacionCercana(nodoAnteriorVisitado);
+        double energiaAEstacion = cost_Matrix[nodoAnteriorVisitado][stationToGo] * this->consumption_Rate;
+
+        if ((currentEnergyConsumption + energiaAEstacion) > this->energy_Capacity) {
+            // No alcanza para ir a la estaciÃ³n mÃ¡s cercana â†’ intentamos cerrar ruta actual
+            if ((vehiculosUSADOS + 1 <= this->num_Vehicles) &&
+                (currentEnergyConsumption + (cost_Matrix[nodoAnteriorVisitado][this->depot] * this->consumption_Rate)) <= this->energy_Capacity) {
                 
-                // si la energiaconsumida, de la suma de la energia consumida actual mas la energia que consumira el ir al siguiente cliente fuera mayor que la capacidad de bateria del vehiculo es necesario agregar una estacion de recarga
-                // O invalidar la solucion? 
-                stationToGo = encontrarEstacionCercana(nodoAnteriorVisitado);
-
-                if (currentEnergyConsumption + (cost_Matrix[nodoAnteriorVisitado][stationToGo] * this->consumption_Rate)  > this->energy_Capacity) {
-
-                    //NO ES POSIBLE LLEGAR A LA ESTACION MAS CERCANA POR QUE NO ALCANZA LA BATERIA
-                    // 
-                    // 
-                    //INSERTAR UN NUEVO VEHICULO
-                    if (vehiculosUSADOS + 1 <= this->num_Vehicles) {
-
-                        solArray[i] = 0;
-                        currentEnergyConsumption = 0.0;
-                        nodoAnteriorVisitado = this->depot;
-                        vehiculosUSADOS++;
-
-                    }
-                    else {
-                        break; //no se puede alcanzar la siguientes estacion de recarga ni iniciar una nueva ruta
-                    }
-
-
-                }
-                else {
-                    solArray[i] = stationToGo;
-                    nodoAnteriorVisitado = stationToGo;
-                    currentEnergyConsumption = 0.0;
-                }
-
-
+                solArray[i] = 0; // Regresamos al depÃ³sito
+                currentEnergyConsumption = 0.0;
+                currentDemandVehicle = 0;
+                nodoAnteriorVisitado = this->depot;
+                vehiculosUSADOS++;
             }
             else {
-
-                solArray[i] = auxPerm[clientesInsertados];
-                currentEnergyConsumption += cost_Matrix[nodoAnteriorVisitado][auxPerm[clientesInsertados]] * this->consumption_Rate;
-                nodoAnteriorVisitado = auxPerm[clientesInsertados];
-                clientesInsertados++;
-
-                
+                break; // No se puede alcanzar la estaciÃ³n ni iniciar nueva ruta
             }
-
-
-
-
-            //cout << solArray[i] << " ";
         }
+        else {
+            // Insertamos estaciÃ³n de recarga
+            solArray[i] = stationToGo;
+            nodoAnteriorVisitado = stationToGo;
+            currentEnergyConsumption = 0.0;
+        }
+    }
+    else {
+        int demandaCliente = this->customer_Demand[clienteActual];
 
+        // Verificamos si la carga total excede la capacidad del vehÃ­culo
+        if ((currentDemandVehicle + demandaCliente) > this->max_Capacity) {
+            // Intentamos cerrar ruta actual
+            if ((vehiculosUSADOS + 1 <= this->num_Vehicles) &&
+                (currentEnergyConsumption + (cost_Matrix[nodoAnteriorVisitado][this->depot] * this->consumption_Rate)) <= this->energy_Capacity) {
+                
+                solArray[i] = 0; // Insertamos regreso al depÃ³sito
+                currentEnergyConsumption = 0.0;
+                currentDemandVehicle = 0;
+                nodoAnteriorVisitado = this->depot;
+                vehiculosUSADOS++;
+            }
+            else {
+                break; // No se puede insertar por falta de vehÃ­culos o energÃ­a
+            }
+        }
+        else {
+            // Insertamos el cliente normalmente
+            solArray[i] = clienteActual;
+            currentEnergyConsumption += energiaNecesaria;
+            currentDemandVehicle += demandaCliente;
+            nodoAnteriorVisitado = clienteActual;
+            clientesInsertados++;
+        }
+    }
+}
 
  
 
-        //// Asegurar que el último elemento sea 0 si hay vehículos sin usar
+        //// Asegurar que el Ãºltimo elemento sea 0 si hay vehÃ­culos sin usar
         //if (cerosInsertados < numVehiculos - 1) {
         //    solArray[tamSol - 1] = 0;
         //}
         
-        // Guardar solución en sol_new
+        // Guardar soluciÃ³n en sol_new
         for (int i = 0; i < tamSol; ++i) {
             sol_new.setVariableValue(i, solArray[i]);
-            cout << solArray[i] << " ";
+         /*   cout << solArray[i] << " ";*/
         }
-        cout << endl;
+        /*cout << endl;*/
         this->evaluate(&sol_new);
         this->evaluateConstraints(&sol_new);
 
-        //// Si hay restricciones violadas, intentar con más vehículos
+        //// Si hay restricciones violadas, intentar con mÃ¡s vehÃ­culos
         //if (sol_new.getNumberOfViolatedConstraints() > 0 && numVehiculos < this->num_Vehicles) {
         //    numVehiculos++;
         //}
@@ -458,7 +527,7 @@ Solution miCEVRP::generateRandomSolution() {
 
     } while (sol_new.getNumberOfViolatedConstraints() > 0);
 
-    cout << endl;
+    //cout << endl;
     this->evaluate(&sol_new);
     this->evaluateConstraints(&sol_new);
 
