@@ -25,6 +25,7 @@ class miCEVRP : public Problem {
 	int depot;
 	int num_Customers;
 
+	//double** cost_Matrix;
 	int** cost_Matrix;
 
 	int* tipoNodo; // 0 = depot, 1 = customer, 2 = station

@@ -34,6 +34,30 @@ bool  miCEVRP::isStation(int nodo) {
 }
 
 
+//
+//static double** getCostMatrix(int** coordenadas, int n) {
+//    /*  cout << endl; cout << endl;*/
+//    double** costMatrix = new double* [n];
+//    for (int i = 0; i < n; i++) {
+//        costMatrix[i] = new double[n];
+//    }
+//
+//    // Calculamos la distancia euclidiana entre cada par de nodos
+//    for (int i = 0; i < n; i++) {
+//        int xi = coordenadas[i][0];
+//        int yi = coordenadas[i][1];
+//        for (int j = 0; j < n; j++) {
+//            int xj = coordenadas[j][0];
+//            int yj = coordenadas[j][1];
+//            double distancia = sqrt((xi - xj) * (xi - xj) + (yi - yj) * (yi - yj));
+//            costMatrix[i][j] = distancia;//static_cast<int>(round(distancia));
+//            /*cout << costMatrix[i][j]<< " ";*/
+//        }
+//        /*  cout << endl;*/
+//    }
+//    /*  cout << endl;*/
+//    return costMatrix;
+//}
 
 
 static int** getCostMatrix(int** coordenadas, int n) {
@@ -133,7 +157,7 @@ void miCEVRP::initialize(Requirements* config) {
 
     //DEFINIR PAR METROS DE CONTROL
     this->numberOfVariables_ = (this->dimension+ num_Vehicles);
-    this->numberOfObjectives_ = 1;
+    this->numberOfObjectives_ = 1; // DISTANCIA, ..
     this->numberOfConstraints_ = 2;
 
 
@@ -204,7 +228,7 @@ void miCEVRP::evaluate(Solution* s) {
 
         if (nodoActual == 0) {
 
-            //if nodoActual is 0, means the end of that route, so we added the cost
+            //if nodoActual is 0, means the end of that route, so we add the cost
             //from nodoPrevio to Depot.
             /*if (!(cost_Matrix[nodoPrevio][nodoActual] == 100000)) {
                 cout << "nodo: " << nodoPrevio << "nodoActual: " << nodoActual << endl;
@@ -239,15 +263,15 @@ void miCEVRP::evaluate(Solution* s) {
 
 
     s->setObjective(0, distanciaTotal);
-    //setObjective(1,totalEnergyConsumed)
+   // s->setObjective(1, totalEnergyConsumed);
  
 }
 
 void miCEVRP::evaluateConstraints(Solution* s) {
     Interval* vars = s->getDecisionVariables();
     int* cargaRutas = new int[this->num_Vehicles]();
-    double* energiaRestante = new double[this->num_Vehicles];
-    bool* clientesVisitados = new bool[this->num_Customers]();  // <-- Nuevo arreglo para rastrear visitas
+    double* energiaRestante = new double[this->num_Vehicles];   // ENERGY FOR EACH VEHICLE, WHEN A VEHICLE VISITS A STATION THE LEVEL OF BATTERY RESETS
+    bool* clientesVisitados = new bool[this->num_Customers]();  // <-- ALL CUSTOMERS MUST BE VISITED
 
     double numberViolatedConstraints = 0.0;
     double totalViolation = 0;
@@ -263,7 +287,7 @@ void miCEVRP::evaluateConstraints(Solution* s) {
     for (int i = 0; i < this->getNumberOfVariables(); i++) {
         int nodoActual = (int)vars[i].L;
 
-        // Fin de la solución
+        // END OF ALL THE ROUTES
         if (nodoActual == -1) {
             double energiaNecesaria = cost_Matrix[nodoAnterior][0] * consumption_Rate;
             if (energiaRestante[currentVehicle] < energiaNecesaria) {
@@ -273,7 +297,7 @@ void miCEVRP::evaluateConstraints(Solution* s) {
             break;
         }
 
-        // Cambio de ruta (nuevo vehículo)
+        // CHANGE OF ROUTE (NEW VEHICLE)
         if (nodoActual == 0) {
             double energiaNecesaria = cost_Matrix[nodoAnterior][0] * consumption_Rate;
             if (energiaRestante[currentVehicle] < energiaNecesaria) {
@@ -283,7 +307,7 @@ void miCEVRP::evaluateConstraints(Solution* s) {
 
             currentVehicle++;
             if (currentVehicle >= this->num_Vehicles) {
-                numberViolatedConstraints++; // Se excedió el número de vehículos
+                numberViolatedConstraints++; // NUMBER OF VEHICLES EXCEEDED
                 break;
             }
 
@@ -291,7 +315,7 @@ void miCEVRP::evaluateConstraints(Solution* s) {
             continue;
         }
 
-        // Calcular y consumir energía
+        // CALCULATE THE ENERGY CONSUMPTION FROM THE LAST NODE TO THE DESTINY NODE
         double consumo = cost_Matrix[nodoAnterior][nodoActual] * consumption_Rate;
         energiaRestante[currentVehicle] -= consumo;
 
@@ -300,7 +324,7 @@ void miCEVRP::evaluateConstraints(Solution* s) {
             totalViolation += (-energiaRestante[currentVehicle]);
         }
 
-        // Si es cliente, acumular demanda y marcarlo como visitado
+        // IF THE VISITED NODE IS A CUSTOMER, WE ADD THE DEMAND AND MARK AS VISITED
         if (isCustomer(nodoActual)) {
             cargaRutas[currentVehicle] += customer_Demand[nodoActual];
 
@@ -309,15 +333,21 @@ void miCEVRP::evaluateConstraints(Solution* s) {
             }
         }
 
-        // Si es estación, recargar batería
+        // IF THE NODE IS A STATION WE RESET DE BATTERY LEVEL OF THE VEHICLE
         if (isStation(nodoActual)) {
             energiaRestante[currentVehicle] = this->energy_Capacity;
+        }
+        if (i >= 1) {
+            if (isStation(nodoAnterior) && isStation(nodoActual) ) {
+                numberViolatedConstraints++;
+                totalViolation += 1;
+            }
         }
 
         nodoAnterior = nodoActual;
     }
 
-    // Verificar capacidad de todos los vehículos usados
+    // CHECK THE CAPACITY FOR ALL USED VEHICLES
     for (int v = 0; v <= std::min(currentVehicle, this->num_Vehicles - 1); v++) {
         if (cargaRutas[v] > this->max_Capacity) {
             numberViolatedConstraints++;
@@ -325,19 +355,21 @@ void miCEVRP::evaluateConstraints(Solution* s) {
         }
     }
 
-    // Penalizar clientes no visitados
+    // PENALIZE IF THERE ARE CUSTOMERS NOT VISITED
     for (int i = 0; i < this->num_Customers; ++i) {
         if (!clientesVisitados[i]) {
             std::wstring m = L"Clientes no insertados: " + std::to_wstring(i+1) + L"\n";
             OutputDebugStringW(m.c_str());
             
             numberViolatedConstraints++;
-            totalViolation += 1.0;  // Puedes cambiar el peso si lo deseas
+            totalViolation += 1.0;  // CUANTO??
         }
+      
+
     }std::wstring m2 = L"   "   L"\n";
     OutputDebugStringW(m2.c_str());
 
-    // Guardar penalización
+    // Guardar penalizaciones
     s->setNumberOfViolatedConstraints(numberViolatedConstraints);
     s->setOverallConstraintViolation(-totalViolation);
 
@@ -373,12 +405,13 @@ Solution miCEVRP::generateRandomSolution() {
     // Generate random number between half and the total number of vehicle - 1
     // cambiar 
 //    int numVehiculos = rnd->nextInt((this->num_Vehicles - 1) / 2) + ((this->num_Vehicles - 1) / 2) + 1;
+    //En las instacias benchmark se deben usar los vehiculos indicados en la instancia(anotar cuales son)
   int  numVehiculos = this->num_Vehicles;
     // numVehiculos = 5;
-     // Convertir a cadena ancha
+  
     std::wstring mensaje = L"Valor de n: " + std::to_wstring(numVehiculos) + L"\n";
 
-    // Usar la versión wide (Unicode)
+ 
     OutputDebugStringW(mensaje.c_str());
 
 
@@ -414,7 +447,7 @@ Solution miCEVRP::generateRandomSolution() {
         solArray[0] = auxPerm[0]; // the first element is always a customer. 
         int clientesInsertados = 1;
         int cerosInsertados = 0;
-        int clientesDesdeUltimoCero = 1; // Contador de clientes desde el último 0
+     //   int clientesDesdeUltimoCero = 1; // Contador de clientes desde el último 0
 
         double currentEnergyConsumption = 0.0;
 
@@ -448,7 +481,7 @@ Solution miCEVRP::generateRandomSolution() {
         double energiaAEstacion = cost_Matrix[nodoAnteriorVisitado][stationToGo] * this->consumption_Rate;
 
         if ((currentEnergyConsumption + energiaAEstacion) > this->energy_Capacity) {
-            // No alcanza para ir a la estación más cercana → intentamos cerrar ruta actual
+            // No alcanza para ir a la estación más cercana → intentamos cerrar ruta actual pero debe haber energia para cerrar la ruta
             if ((vehiculosUSADOS + 1 <= this->num_Vehicles) &&
                 (currentEnergyConsumption + (cost_Matrix[nodoAnteriorVisitado][this->depot] * this->consumption_Rate)) <= this->energy_Capacity) {
                 
@@ -474,7 +507,7 @@ Solution miCEVRP::generateRandomSolution() {
 
         // Verificamos si la carga total excede la capacidad del vehículo
         if ((currentDemandVehicle + demandaCliente) > this->max_Capacity) {
-            // Intentamos cerrar ruta actual
+            // Intentamos cerrar ruta actual, debe haber energia para regresar al deposito, y debe haber un vehiculo disponible para la siguiente ruta
             if ((vehiculosUSADOS + 1 <= this->num_Vehicles) &&
                 (currentEnergyConsumption + (cost_Matrix[nodoAnteriorVisitado][this->depot] * this->consumption_Rate)) <= this->energy_Capacity) {
                 
