@@ -24,8 +24,9 @@ int main()
     RandomNumber* rnd = RandomNumber::getInstance();
            rnd->setSeed(310);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 100; i++)
     {
+      
          
         auto start = std::chrono::high_resolution_clock::now(); // Inicio del tiempo
 
@@ -51,7 +52,9 @@ int main()
       
         cout << *alg->getLastB() << endl;
 
-       
+        // Liberar memoria manualmente
+        delete alg;
+        
 
         auto end = std::chrono::high_resolution_clock::now();  
         std::chrono::duration<double> duration = end - start; 

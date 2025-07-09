@@ -179,141 +179,218 @@ Solution perturbacion(Solution solucion) {
 	return solucion;
 }
 
-
+//
+//
+//Solution perturbacionPermutacionVRP(Solution solucion) {
+//	
+//	//imprimirSolucion(solucion);
+//	//cout << "Solucion" << endl;
+//	// Obtener una copia de la solución para trabajar con ella.
+//	Solution copia(solucion.getProblem());
+//
+//	// Copiar el array original para no dañarlo.
+//	for (int j = 0; j < copia.getNumVariables(); j++) {
+//		copia.setVariableValue(j, solucion.getVariableValue(j));
+//
+//	}
+//
+//	// Evaluar la solución original antes de las perturbaciones.
+//	copia.getProblem()->evaluate(&copia);
+//	copia.getProblem()->evaluateConstraints(&copia);
+//	if (copia.getNumberOfViolatedConstraints() < 0) {
+//		cout << copia.getNumberOfViolatedConstraints();
+//	}
+// 
+//	/*imprimirSolucion(copia);*/
+//	/*cout << copia.getObjective(0) << " --- " << solucion.getObjective(0) << endl;*/
+//
+//	// Vector para almacenar los índices  que no se deben mover (por ejemplo, valor 0 o -1).
+//	std::vector<std::pair<int, int>> indicesYValores;
+//
+//	// Contar 0 y -1 que no deben ser modificadas (por ejemplo, 0 y -1).
+//	int contadorCiudadesFijas = 0;
+//	for (int i = 0; i < copia.getNumVariables(); i++) {
+//		if (copia.getVariableValue(i).L == 0 || copia.getVariableValue(i).L == -1  ) {
+//			contadorCiudadesFijas++;
+//			indicesYValores.push_back(std::make_pair(i, copia.getVariableValue(i).L)); // Guardar el índice y valor.
+//		}
+//	}
+//
+//	// Crear un arreglo auxiliar sin las deposito o final (0 o -1).
+//	int* aux = new int[(copia.getNumVariables()) - contadorCiudadesFijas];
+//	int j = 0; // Índice para aux.
+//
+//	// Llenar el arreglo aux con los clientes que pueden ser mutadas (sin los 0 y -1).
+//	for (int i = 0; i < copia.getNumVariables(); i++) {
+//		if (copia.getVariableValue(i).L != 0 && copia.getVariableValue(i).L != -1) {
+//			aux[j++] = copia.getVariableValue(i).L;
+//		}
+//	}
+//
+//	// Realizar la mutación en el arreglo aux sin 0 y -1
+//	for (int i = 0; i < j - 1; i++) {
+//		int actu = aux[i];
+//		int next = aux[i + 1];
+//		aux[i] = next;
+//		aux[i + 1] = actu;
+//	}
+//
+//	// Restaurar los valores mutados en la solución, respetando los índices de las ciudades fijas.
+//	j = 0; // Reiniciar el índice para aux.
+//	for (int i = 0; i < copia.getNumVariables(); i++) {
+//		bool esCiudadFija = false;
+//		for (const auto& par : indicesYValores) {
+//			if (par.first == i) {
+//				copia.setVariableValue(i, par.second); // Restaurar el valor original (0 o -1).
+//				esCiudadFija = true;
+//				break;
+//			}
+//		}
+//
+//		// Si la ciudad no es fija, aplicar la mutación (restaurar el valor mutado).
+//		if (!esCiudadFija) {
+//			copia.setVariableValue(i, aux[j++]);
+//		}
+//	}
+//
+//	// Liberar la memoria dinámica.
+//	delete[] aux;
+//
+//	// Evaluar la nueva solución tras la mutación.
+//	copia.getProblem()->evaluate(&copia);
+//	copia.getProblem()->evaluateConstraints(&copia);
+//	
+//
+// 
+// 
+//
+//
+//	bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
+//	if (maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) > solucion.getObjective(0))
+//	{
+//	 
+//		return copia;
+//	}
+//	else if (!maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) < solucion.getObjective(0))
+//	{
+//		return copia;
+//
+//	 
+//	}
+//
+//
+//
+// 
+//
+//
+//
+//
+//
+//
+//	// Si no mejora, devolver la solución original.
+//	return solucion;
+//}
 
 Solution perturbacionPermutacionVRP(Solution solucion) {
-	
-	//imprimirSolucion(solucion);
-	//cout << "Solucion" << endl;
-	// Obtener una copia de la solución para trabajar con ella.
+	RandomNumber* rnd = RandomNumber::getInstance();
 	Solution copia(solucion.getProblem());
 
-	// Copiar el array original para no dañarlo.
+	// Copiar el array original
 	for (int j = 0; j < copia.getNumVariables(); j++) {
 		copia.setVariableValue(j, solucion.getVariableValue(j));
-
 	}
 
-	// Evaluar la solución original antes de las perturbaciones.
+	// Evaluar la solución original
 	copia.getProblem()->evaluate(&copia);
 	copia.getProblem()->evaluateConstraints(&copia);
-	if (copia.getNumberOfViolatedConstraints() < 0) {
-		cout << copia.getNumberOfViolatedConstraints();
-	}
- 
-	/*imprimirSolucion(copia);*/
-	/*cout << copia.getObjective(0) << " --- " << solucion.getObjective(0) << endl;*/
 
-	// Vector para almacenar los índices  que no se deben mover (por ejemplo, valor 0 o -1).
+	// Identificar elementos fijos (0, -1 y estaciones >=22)
 	std::vector<std::pair<int, int>> indicesYValores;
-
-	// Contar 0 y -1 que no deben ser modificadas (por ejemplo, 0 y -1).
 	int contadorCiudadesFijas = 0;
 	for (int i = 0; i < copia.getNumVariables(); i++) {
-		if (copia.getVariableValue(i).L == 0 || copia.getVariableValue(i).L == -1  ) {
+		int value = copia.getVariableValue(i).L;
+		if (value == 0 || value == -1 || value >= 22) {
 			contadorCiudadesFijas++;
-			indicesYValores.push_back(std::make_pair(i, copia.getVariableValue(i).L)); // Guardar el índice y valor.
+			indicesYValores.push_back(std::make_pair(i, value));
 		}
 	}
 
-	// Crear un arreglo auxiliar sin las deposito o final (0 o -1).
-	int* aux = new int[(copia.getNumVariables()) - contadorCiudadesFijas];
-	int j = 0; // Índice para aux.
-
-	// Llenar el arreglo aux con los clientes que pueden ser mutadas (sin los 0 y -1).
+	// Crear arreglo auxiliar solo con elementos mutables
+	int numMutables = copia.getNumVariables() - contadorCiudadesFijas;
+	int* aux = new int[numMutables];
+	int j = 0;
 	for (int i = 0; i < copia.getNumVariables(); i++) {
-		if (copia.getVariableValue(i).L != 0 && copia.getVariableValue(i).L != -1) {
-			aux[j++] = copia.getVariableValue(i).L;
+		int value = copia.getVariableValue(i).L;
+		if (value != 0 && value != -1 && value < 22) {
+			aux[j++] = value;
 		}
 	}
 
-	// Realizar la mutación en el arreglo aux sin 0 y -1
-	for (int i = 0; i < j - 1; i++) {
-		int actu = aux[i];
-		int next = aux[i + 1];
-		aux[i] = next;
-		aux[i + 1] = actu;
+	// Aplicar mutación con probabilidad (similar al que funciona)
+	//double mutationProbability = 1.0; // Puedes ajustar este valor
+	for (int i = 0; i < numMutables - 1; i++) {
+		/*if (rnd->nextDouble() <= mutationProbability) {*/
+			std::swap(aux[i], aux[i + 1]);
+	/*	}*/
 	}
 
-	// Restaurar los valores mutados en la solución, respetando los índices de las ciudades fijas.
-	j = 0; // Reiniciar el índice para aux.
+	// Reconstruir solución
+	j = 0;
 	for (int i = 0; i < copia.getNumVariables(); i++) {
 		bool esCiudadFija = false;
 		for (const auto& par : indicesYValores) {
 			if (par.first == i) {
-				copia.setVariableValue(i, par.second); // Restaurar el valor original (0 o -1).
+				copia.setVariableValue(i, par.second);
 				esCiudadFija = true;
 				break;
 			}
 		}
-
-		// Si la ciudad no es fija, aplicar la mutación (restaurar el valor mutado).
 		if (!esCiudadFija) {
 			copia.setVariableValue(i, aux[j++]);
 		}
 	}
 
-	// Liberar la memoria dinámica.
 	delete[] aux;
 
-	// Evaluar la nueva solución tras la mutación.
+	// Evaluar la nueva solución
 	copia.getProblem()->evaluate(&copia);
 	copia.getProblem()->evaluateConstraints(&copia);
-	
 
- 
- 
-
-
+	// Verificar si es mejor solución
 	bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-	if (maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) > solucion.getObjective(0))
-	{
-	 
-		return copia;
-	}
-	else if (!maximization && copia.getNumberOfViolatedConstraints() == 0 && copia.getObjective(0) < solucion.getObjective(0))
-	{
-		return copia;
-
-	 
+	if (copia.getNumberOfViolatedConstraints() == 0) {
+		if ((maximization && copia.getObjective(0) > solucion.getObjective(0)) ||
+			(!maximization && copia.getObjective(0) < solucion.getObjective(0))) {
+			return copia;
+		}
 	}
 
-
-
- 
-
-
-
-
-
-
-	// Si no mejora, devolver la solución original.
 	return solucion;
 }
 
 
 void busquedaLocalIterada(SolutionSet* solucionesIniciales) {
 	for (int i = 0; i < solucionesIniciales->size(); i++) {
-		Solution copia(solucionesIniciales->get(i).getProblem());
+		//Solution copia(solucionesIniciales->get(i).getProblem());
 
-		// Copiar el array original para no dañarlo
-		for (int j = 0; j < copia.getNumVariables(); j++) {
+		//// Copiar el array original para no dañarlo
+		//for (int j = 0; j < copia.getNumVariables(); j++) {
 
-			copia.setVariableValue(j, solucionesIniciales->get(i).getVariableValue(j));
-			
+		//	copia.setVariableValue(j, solucionesIniciales->get(i).getVariableValue(j));
+		//	
 
-		}
+		//}
 
-		 
+		// 
 
-		// Evaluar la copia de la solución original
-		copia.getProblem()->evaluate(&copia);
-		copia.getProblem()->evaluateConstraints(&copia);
-		
+		//// Evaluar la copia de la solución original
+		//copia.getProblem()->evaluate(&copia);
+		//copia.getProblem()->evaluateConstraints(&copia);
+		//
  
 
 		
-		Solution nuevaSolucion = perturbacionPermutacionVRP(copia);
+		Solution nuevaSolucion = perturbacionPermutacionVRP(solucionesIniciales->get(i));
 		
  
 		solucionesIniciales->set(i, nuevaSolucion);
@@ -400,7 +477,7 @@ void miGenetico::execute() {
 		}
  
 
-		//busquedaLocalIterada(hijosGenerados);//hijos generados
+		busquedaLocalIterada(hijosGenerados);//hijos generados
 
 
 		Interval mejorHastaAhora = this->best->get(0).getObjective(0);
@@ -422,6 +499,8 @@ void miGenetico::execute() {
 				else if (!maximization && hijosGenerados->get(i).getObjective(0) < best->get(0).getObjective(0) &&
 					hijosGenerados->get(i).getNumberOfViolatedConstraints() == 0) {
 					best->set(0, hijosGenerados->get(i));
+					std::wstring m2 = L"MEJORSO: "    L"\n";
+					OutputDebugStringW(m2.c_str());
 			 
 				}
 
@@ -442,7 +521,8 @@ void miGenetico::execute() {
 				else if (!maximization && hijosGenerados->get(j).getObjective(0) < pob->get(i).getObjective(0) &&
 					hijosGenerados->get(j).getNumberOfViolatedConstraints() == 0) {
 					pob->set(i, hijosGenerados->get(j));
-		 
+					std::wstring m = L"MEJORO: "    L"\n";
+					OutputDebugStringW(m.c_str());
 					break;
 				}
 
