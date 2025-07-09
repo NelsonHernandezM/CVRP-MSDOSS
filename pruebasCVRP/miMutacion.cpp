@@ -86,9 +86,9 @@ void miMutacion::execute(Solution y) {
     }
 
     // Liberar la memoria dinámica.
-    delete[] indices;
+ /*   delete[] indices;
     delete[] valores;
-    delete[] aux;
+    delete[] aux;*/
 }
 
 

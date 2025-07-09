@@ -400,7 +400,7 @@ void miGenetico::execute() {
 		}
  
 
-		//busquedaLocalIterada(hijosGenerados);//hijos generados
+		busquedaLocalIterada(hijosGenerados);//hijos generados
 
 
 		Interval mejorHastaAhora = this->best->get(0).getObjective(0);
