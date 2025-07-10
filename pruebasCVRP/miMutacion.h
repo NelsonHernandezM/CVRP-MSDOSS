@@ -10,6 +10,7 @@ private:
     double mutationProbability_;    //Input [PolynomialMutation-probability] probability of mutating
 
 public:
+  
     void execute(Solution ind) override;
     void initialize(Requirements* config) override;
 };

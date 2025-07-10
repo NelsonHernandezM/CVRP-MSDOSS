@@ -43,7 +43,7 @@ public:
 	void evaluateConstraints(Solution* s) override;
 
 	Solution generateRandomSolution();
-	bool isStation(int nodo);
+	  bool isStation(int nodo);
 	bool isDepot(int nodo);
 	bool isCustomer(int nodo);
 	int encontrarEstacionCercana(int nodo);

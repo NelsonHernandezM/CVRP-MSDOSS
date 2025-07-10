@@ -7,6 +7,8 @@
 #include "miCEVRP.h"
 #include<tools/builders/ProblemBuilder.h>
 #include <tools/builders/MutationBuilder.h>
+#include <tools/builders/ImprovementBuilder.h>
+#include "miBusqueda.h"
 #include "miGenetico.h"
 #include "miMutacion.h"
 #include "CVRP.h"
@@ -19,10 +21,10 @@ using namespace std;
  
 int main()
 {
-    std::mt19937 rng(310);  // Semilla fija
-    srand(310);  // Semilla fija
-    RandomNumber* rnd = RandomNumber::getInstance();
-           rnd->setSeed(310);
+    //std::mt19937 rng(310);  // Semilla fija
+    //srand(310);  // Semilla fija
+    //RandomNumber* rnd = RandomNumber::getInstance();
+    //       rnd->setSeed(310);
 
     for (int i = 0; i < 100; i++)
     {
@@ -31,11 +33,13 @@ int main()
         auto start = std::chrono::high_resolution_clock::now(); // Inicio del tiempo
 
         cout << i << endl;
-
+    
+        
         MutationBuilder::add("miMutacion", new miMutacion());
 
         AlgorithmBuilder::add("miGenetico", new miGenetico());
 
+        ImprovementBuilder::add("miBusqueda", new miBusqueda());
 
         ProblemBuilder::add("miCEVRP", new miCEVRP());
 
@@ -53,7 +57,7 @@ int main()
         cout << *alg->getLastB() << endl;
 
         // Liberar memoria manualmente
-        delete alg;
+       /* delete alg;*/
         
 
         auto end = std::chrono::high_resolution_clock::now();  

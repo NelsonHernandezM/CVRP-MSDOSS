@@ -21,7 +21,7 @@ void imprimirSolucion(Solution* s) {
 }
 
 // 0 = depot, 1 = customer, 2 = station
-bool miCEVRP::isDepot(int nodo) {
+  bool miCEVRP::isDepot(int nodo) {
     return this->tipoNodo[nodo] == 0;
 }
 

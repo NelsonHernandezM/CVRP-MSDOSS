@@ -36,6 +36,7 @@ void miGenetico::initialize(Requirements* req) {
 	this->mo = (MutationOperator*)MutationBuilder::execute(req);
 	this->co = (CrossoverOperator*)CrossoverBuilder::execute(req);
 	this->so = (SelectionOperator*)SelectionBuilder::execute(req);
+	this->improvement = (ImprovementOperator*)ImprovementBuilder::execute(req);
 
 	pob = new SolutionSet((2 * N), this->problem_);
 
@@ -304,12 +305,21 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 	copia.getProblem()->evaluate(&copia);
 	copia.getProblem()->evaluateConstraints(&copia);
 
+	Problem* base = copia.getProblem();
+	miCEVRP* problema = dynamic_cast<miCEVRP*>(base);
+ 
+
 	// Identificar elementos fijos (0, -1 y estaciones >=22)
 	std::vector<std::pair<int, int>> indicesYValores;
 	int contadorCiudadesFijas = 0;
 	for (int i = 0; i < copia.getNumVariables(); i++) {
 		int value = copia.getVariableValue(i).L;
-		if (value == 0 || value == -1 || value >= 22) {
+
+		Problem* base = copia.getProblem();
+		miCEVRP* problema = dynamic_cast<miCEVRP*>(base);
+
+
+		if (problema->isDepot(value) || value == -1 || problema->isStation(value)) {
 			contadorCiudadesFijas++;
 			indicesYValores.push_back(std::make_pair(i, value));
 		}
@@ -317,21 +327,73 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 
 	// Crear arreglo auxiliar solo con elementos mutables
 	int numMutables = copia.getNumVariables() - contadorCiudadesFijas;
+	if (numMutables <= 1) return solucion;  // No se puede perturbar
+
 	int* aux = new int[numMutables];
 	int j = 0;
 	for (int i = 0; i < copia.getNumVariables(); i++) {
 		int value = copia.getVariableValue(i).L;
-		if (value != 0 && value != -1 && value < 22) {
+		
+		if (!problema->isDepot(value) && value != -1 && !problema->isStation(value)) {
 			aux[j++] = value;
 		}
 	}
 
-	// Aplicar mutación con probabilidad (similar al que funciona)
-	//double mutationProbability = 1.0; // Puedes ajustar este valor
-	for (int i = 0; i < numMutables - 1; i++) {
-		/*if (rnd->nextDouble() <= mutationProbability) {*/
-			std::swap(aux[i], aux[i + 1]);
-	/*	}*/
+	// Cálculo dinámico del número de perturbaciones
+	int numPerturbaciones = 0;
+	if (numMutables <= 5) {
+		numPerturbaciones = 1;  // Casos muy pequeños
+	}
+	else if (numMutables <= 15) {
+		numPerturbaciones = 2 + rnd->nextInt(1);  // 2-3 perturbaciones
+	}
+	else {
+		// Para soluciones grandes: 10-15% de los elementos mutables
+		numPerturbaciones = std::max(3, static_cast<int>(numMutables * 0.12));
+		// Límite superior para no excederse
+		numPerturbaciones = std::min(numPerturbaciones, 20);
+	}
+
+	// Tipo de perturbación (swap aleatorio o inversión)
+	int tipoPerturbacion = rnd->nextInt(1);
+
+	if (tipoPerturbacion == 0) {
+		// SWAPS ALEATORIOS
+		for (int i = 0; i < numPerturbaciones; i++) {
+			int idx1 = rnd->nextInt( numMutables - 1);
+			int idx2;
+			do {
+				idx2 = rnd->nextInt(numMutables - 1);
+			} while (idx1 == idx2);
+
+			std::swap(aux[idx1], aux[idx2]);
+		}
+	}
+	else {
+		// INVERSIONES
+		for (int i = 0; i < numPerturbaciones; i++) {
+			int inicio = rnd->nextInt( numMutables - 1);
+			int fin;
+			int intentos = 0;
+			do {
+				fin = rnd->nextInt(numMutables - 1);
+				intentos++;
+				// Prevenir loops infinitos en casos límite
+				if (intentos > 10) {
+					fin = (inicio + 1) % numMutables;
+					break;
+				}
+			} while (abs(inicio - fin) < 2);  // Mínimo 3 elementos
+
+			if (inicio > fin) std::swap(inicio, fin);
+
+			// Realizar la inversión
+			while (inicio < fin) {
+				std::swap(aux[inicio], aux[fin]);
+				inicio++;
+				fin--;
+			}
+		}
 	}
 
 	// Reconstruir solución
@@ -367,6 +429,84 @@ Solution perturbacionPermutacionVRP(Solution solucion) {
 
 	return solucion;
 }
+
+
+//Solution perturbacionPermutacionVRP(Solution solucion) {
+//	RandomNumber* rnd = RandomNumber::getInstance();
+//	Solution copia(solucion.getProblem());
+//
+//	// Copiar el array original
+//	for (int j = 0; j < copia.getNumVariables(); j++) {
+//		copia.setVariableValue(j, solucion.getVariableValue(j));
+//	}
+//
+//	// Evaluar la solución original
+//	copia.getProblem()->evaluate(&copia);
+//	copia.getProblem()->evaluateConstraints(&copia);
+//
+//	// Identificar elementos fijos (0, -1 y estaciones >=22)
+//	std::vector<std::pair<int, int>> indicesYValores;
+//	int contadorCiudadesFijas = 0;
+//	for (int i = 0; i < copia.getNumVariables(); i++) {
+//		int value = copia.getVariableValue(i).L;
+//		if (value == 0 || value == -1 || value >= 22) {
+//			contadorCiudadesFijas++;
+//			indicesYValores.push_back(std::make_pair(i, value));
+//		}
+//	}
+//
+//	// Crear arreglo auxiliar solo con elementos mutables
+//	int numMutables = copia.getNumVariables() - contadorCiudadesFijas;
+//	int* aux = new int[numMutables];
+//	int j = 0;
+//	for (int i = 0; i < copia.getNumVariables(); i++) {
+//		int value = copia.getVariableValue(i).L;
+//		if (value != 0 && value != -1 && value < 22) {
+//			aux[j++] = value;
+//		}
+//	}
+//
+//	// Aplicar mutación con probabilidad (similar al que funciona)
+//	//double mutationProbability = 1.0; // Puedes ajustar este valor
+//	for (int i = 0; i < numMutables - 1; i++) {
+//		/*if (rnd->nextDouble() <= mutationProbability) {*/
+//			std::swap(aux[i], aux[i + 1]);
+//	/*	}*/
+//	}
+//
+//	// Reconstruir solución
+//	j = 0;
+//	for (int i = 0; i < copia.getNumVariables(); i++) {
+//		bool esCiudadFija = false;
+//		for (const auto& par : indicesYValores) {
+//			if (par.first == i) {
+//				copia.setVariableValue(i, par.second);
+//				esCiudadFija = true;
+//				break;
+//			}
+//		}
+//		if (!esCiudadFija) {
+//			copia.setVariableValue(i, aux[j++]);
+//		}
+//	}
+//
+//	delete[] aux;
+//
+//	// Evaluar la nueva solución
+//	copia.getProblem()->evaluate(&copia);
+//	copia.getProblem()->evaluateConstraints(&copia);
+//
+//	// Verificar si es mejor solución
+//	bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
+//	if (copia.getNumberOfViolatedConstraints() == 0) {
+//		if ((maximization && copia.getObjective(0) > solucion.getObjective(0)) ||
+//			(!maximization && copia.getObjective(0) < solucion.getObjective(0))) {
+//			return copia;
+//		}
+//	}
+//
+//	return solucion;
+//}
 
 
 void busquedaLocalIterada(SolutionSet* solucionesIniciales) {
@@ -437,11 +577,11 @@ void miGenetico::execute() {
 		}
 		else {
 			bool maximization = this->problem_->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-			if (maximization && nueva.getObjective(0) > best->get(0).getObjective(0))
+			if (maximization && nueva.getObjective(0) > best->get(0).getObjective(0) && nueva.getNumberOfViolatedConstraints() == 0)
 			{
 				this->best->set(0, nueva);
 			}
-			else if (!maximization && nueva.getObjective(0) < best->get(0).getObjective(0))
+			else if (!maximization && nueva.getObjective(0) < best->get(0).getObjective(0) && nueva.getNumberOfViolatedConstraints() == 0)
 			{
 				this->best->set(0, nueva);
 			}
@@ -470,6 +610,12 @@ void miGenetico::execute() {
 
 			this->mo->execute(childs.get(1));
 
+
+			this->improvement->execute(childs.get(0));
+
+			this->improvement->execute(childs.get(1));
+
+
 			hijosGenerados->add(childs.get(0));
 			hijosGenerados->add(childs.get(1));
 
@@ -485,53 +631,42 @@ void miGenetico::execute() {
 		bool maximization = this->problem_->getObjectivesType()[0] == Constantes::MAXIMIZATION;
 		for (int i = 0; i < hijosGenerados->size(); i++)
 		{
-
-			for (int i = 0; i < 2 * this->N; i++)
+			for (int k = 0; k < 2 * this->N; k++) // <- cambié 'i' por 'k'
 			{
-
-			
-
 				if (maximization && hijosGenerados->get(i).getObjective(0) > best->get(0).getObjective(0) &&
 					hijosGenerados->get(i).getNumberOfViolatedConstraints() == 0) {
 					best->set(0, hijosGenerados->get(i));
-				 
+
 				}
 				else if (!maximization && hijosGenerados->get(i).getObjective(0) < best->get(0).getObjective(0) &&
 					hijosGenerados->get(i).getNumberOfViolatedConstraints() == 0) {
 					best->set(0, hijosGenerados->get(i));
-					std::wstring m2 = L"MEJORSO: "    L"\n";
+					std::wstring m2 = L"MEJORSO: " L"\n";
 					OutputDebugStringW(m2.c_str());
-			 
 				}
-
-
-
 			}
 		}
+
 		for (int j = 0; j < pobSize; j++)
 		{
-			for (int i = 0; i < 2 * this->N; i++)
+			for (int k = 0; k < 2 * this->N; k++) // <- también cambié 'i' por 'k'
 			{
-				if (maximization && hijosGenerados->get(j).getObjective(0) > pob->get(i).getObjective(0) &&
+				if (maximization && hijosGenerados->get(j).getObjective(0) > pob->get(k).getObjective(0) &&
 					hijosGenerados->get(j).getNumberOfViolatedConstraints() == 0) {
-					pob->set(i, hijosGenerados->get(j));
-				 
-					break; 
+					pob->set(k, hijosGenerados->get(j));
+
+					break;
 				}
-				else if (!maximization && hijosGenerados->get(j).getObjective(0) < pob->get(i).getObjective(0) &&
+				else if (!maximization && hijosGenerados->get(j).getObjective(0) < pob->get(k).getObjective(0) &&
 					hijosGenerados->get(j).getNumberOfViolatedConstraints() == 0) {
-					pob->set(i, hijosGenerados->get(j));
-					std::wstring m = L"MEJORO: "    L"\n";
+					pob->set(k, hijosGenerados->get(j));
+					std::wstring m = L"MEJORO: " L"\n";
 					OutputDebugStringW(m.c_str());
 					break;
 				}
-
 			}
-
-
 		}
 
- 
 
 
 

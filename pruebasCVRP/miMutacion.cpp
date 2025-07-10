@@ -8,6 +8,7 @@
 #include "utility"
 #include <vector>
 #include <cmath>
+#include "miCEVRP.h"
 
 void miMutacion::initialize(Requirements* config) {
     // Configura la probabilidad de mutación.
@@ -19,11 +20,16 @@ void miMutacion::initialize(Requirements* config) {
 void miMutacion::execute(Solution y) {
     RandomNumber* rnd = rnd->getInstance();
 
+    Problem* base = y.getProblem();
+    miCEVRP* problema = dynamic_cast<miCEVRP*>(base);
+ 
+
     // Contar elementos que NO deben mutarse (0, -1 y estaciones >=22)
     int contadorFijos = 0;
     for (int i = 0; i < y.getNumVariables(); i++) {
         int value = y.getVariableValue(i).L;
-        if (value == 0 || value == -1 || value >= 22) {
+       
+        if (value == -1 || problema->isDepot(value) || problema->isStation(value)) {
             contadorFijos++;
         }
     }
@@ -36,7 +42,7 @@ void miMutacion::execute(Solution y) {
     // Llenar arreglos con elementos fijos
     for (int i = 0; i < y.getNumVariables(); i++) {
         int value = y.getVariableValue(i).L;
-        if (value == 0 || value == -1 || value >= 22) {
+        if (problema->isDepot(value) || value == -1 || problema->isStation(value)) {
             indicesFijos[k] = i;
             valoresFijos[k] = value;
             k++;

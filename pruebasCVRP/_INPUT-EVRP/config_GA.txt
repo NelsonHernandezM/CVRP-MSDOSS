@@ -14,7 +14,6 @@
 #crossover SBXCrossover
 #SBXCrossover-probability 1.0
 #SBXCrossover-distributionIndex 15.0
-
-
-
+#improvement miBusqueda
+#Numero-iteraciones 1
 =====================================================================================================
