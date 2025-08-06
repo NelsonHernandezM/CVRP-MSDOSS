@@ -5,7 +5,8 @@
 #include <windows.h>
 #include <string>
 #include <iostream>
- 
+#include <vector>
+#include <cmath>
 
 miCEVRP::miCEVRP() {
 
@@ -21,7 +22,7 @@ void imprimirSolucion(Solution* s) {
 }
 
 // 0 = depot, 1 = customer, 2 = station
-  bool miCEVRP::isDepot(int nodo) {
+ bool miCEVRP::isDepot(int nodo) {
     return this->tipoNodo[nodo] == 0;
 }
 
@@ -33,7 +34,31 @@ bool  miCEVRP::isStation(int nodo) {
     return this->tipoNodo[nodo] == 2;
 }
 
+double  miCEVRP::getEnergyCapacity() {
+    return this->energy_Capacity;
+} 
 
+int** miCEVRP::getCostMatrix() {
+    return this->cost_Matrix;
+} 
+double  miCEVRP::getConsumption_Rate() {
+    return this->consumption_Rate;
+} 
+
+int* miCEVRP::getCustomerDemand() {
+    return this->customer_Demand;
+} 
+int miCEVRP::getMaxCapacity() {
+    return this->max_Capacity;
+}
+
+int miCEVRP::getNumberCustomers() {
+    return this->num_Customers;
+}
+int miCEVRP::getNumVehicles() {
+    return this->num_Vehicles;
+}
+ 
 //
 //static double** getCostMatrix(int** coordenadas, int n) {
 //    /*  cout << endl; cout << endl;*/
@@ -60,7 +85,165 @@ bool  miCEVRP::isStation(int nodo) {
 //}
 
 
-static int** getCostMatrix(int** coordenadas, int n) {
+// Devuelve true si la ruta es factible energéticamente (considerando recargas).
+bool miCEVRP::esRutaFactiblePorEnergia(const std::vector<int>& ruta) {
+    double energiaRestante = this->energy_Capacity;
+
+    for (size_t i = 0; i < ruta.size() - 1; ++i) {
+        int desde = ruta[i];
+        int hasta = ruta[i + 1];
+        double consumo = cost_Matrix[desde][hasta] * consumption_Rate;
+
+        energiaRestante -= consumo;
+
+        if (energiaRestante < 0) {
+            return false;  // Batería agotada
+        }
+
+        if (isStation(hasta)) {
+            energiaRestante = this->energy_Capacity;  // Recarga
+        }
+    }
+
+    return true;  // Energía suficiente durante toda la ruta
+}
+
+// Devuelve true si la ruta es factible por capacidad del vehículo.
+bool miCEVRP::esRutaFactiblePorCapacidad(const std::vector<int>& ruta) {
+    int cargaAcumulada = 0;
+
+    for (size_t i = 1; i < ruta.size(); ++i) {  // empezamos en 1 porque ruta[0] siempre es depósito
+        int nodo = ruta[i];
+
+        if (isCustomer(nodo)) {
+            cargaAcumulada += customer_Demand[nodo];
+
+            if (cargaAcumulada > max_Capacity) {
+                return false;  // Capacidad del vehículo excedida
+            }
+        }
+    }
+
+    return true;  // Capacidad respetada
+}
+
+int miCEVRP::evaluarRutaDistancia(const std::vector<int>& ruta) {
+    int distancia = 0;
+    for (size_t i = 0; i < ruta.size() - 1; ++i) {
+        int desde = ruta[i];
+        int hasta = ruta[i + 1];
+        distancia += this->cost_Matrix[desde][hasta];
+    }
+    return distancia;
+}
+
+double miCEVRP::evaluarRutaEnergia(const std::vector<int>& ruta) {
+    double energia = 0.0;
+    double energiaRestante = this->energy_Capacity;
+
+    for (size_t i = 0; i < ruta.size() - 1; ++i) {
+        int desde = ruta[i];
+        int hasta = ruta[i + 1];
+        double consumo = cost_Matrix[desde][hasta] * consumption_Rate;
+
+        energia += consumo;
+
+        // Si es estación, recargamos batería
+        if (isStation(hasta)) {
+            energiaRestante = this->energy_Capacity;
+        }
+        else {
+            energiaRestante -= consumo;
+        }
+    }
+
+    return energia;
+}
+
+
+
+
+bool miCEVRP::esRutaFactible(const std::vector<int>& ruta) {
+    double energiaRestante = this->energy_Capacity;
+    int carga = 0;
+
+    for (size_t i = 0; i < ruta.size() - 1; ++i) {
+        int desde = ruta[i];
+        int hasta = ruta[i + 1];
+
+        double consumo = cost_Matrix[desde][hasta] * consumption_Rate;
+
+        energiaRestante -= consumo;
+
+        // 🔴 Energía insuficiente
+        if (energiaRestante < 0) {
+            return false;
+        }
+
+        // 🟡 Dos estaciones seguidas
+        if (i >= 1 && isStation(ruta[i]) && isStation(hasta)) {
+            return false;
+        }
+
+        // ⚫ Si es cliente, agregar demanda
+        if (isCustomer(hasta)) {
+            carga += customer_Demand[hasta];
+            if (carga > max_Capacity) {
+                return false;
+            }
+        }
+
+        // 🟢 Si es estación, recarga
+        if (isStation(hasta)) {
+            energiaRestante = this->energy_Capacity;
+        }
+    }
+
+    return true;
+}
+
+
+
+std::vector<std::vector<int>> miCEVRP::separarSolucionPorRutas(Solution* s) {
+    std::vector<std::vector<int>> rutas;
+    std::vector<int> rutaActual;
+
+    Interval* vars = s->getDecisionVariables();
+
+    // Siempre se empieza desde el depósito
+    rutaActual.push_back(0);
+
+    for (int i = 0; i < s->getNumVariables(); ++i) {
+        int nodo = vars[i].L;
+
+        if (nodo == -1) {
+            if (rutaActual.back() != 0) {
+                rutaActual.push_back(0); // aseguramos regreso a depósito
+            }
+            rutas.push_back(rutaActual);
+            break;
+        }
+        else if (nodo == 0) {
+            // Fin de una ruta, regreso al depósito
+            if (rutaActual.back() != 0) {
+                rutaActual.push_back(0);
+            }
+            rutas.push_back(rutaActual);
+            rutaActual.clear();
+            rutaActual.push_back(0); // Comenzamos una nueva ruta desde el depósito
+        }
+        else {
+            rutaActual.push_back(nodo);
+        }
+    }
+
+    return rutas;
+}
+
+
+
+
+static int** generateCostMatrix(int** coordenadas, int n) {
     /*  cout << endl; cout << endl;*/
     int** costMatrix = new int* [n];
     for (int i = 0; i < n; i++) {
@@ -129,7 +312,7 @@ void miCEVRP::initialize(Requirements* config) {
 
     this->stations = (int*)this->par->get("#STATIONS").getValue();
     this->depot = this->par->get("#DEPOT").getInt();
-    this->cost_Matrix = (int**)getCostMatrix(coords,dimension);
+    this->cost_Matrix = (int**)generateCostMatrix(coords,dimension);
 
     this->num_Customers = this->dimension - this->num_stations - 1 ;
 
@@ -156,7 +339,7 @@ void miCEVRP::initialize(Requirements* config) {
 
 
     //DEFINIR PAR METROS DE CONTROL
-    this->numberOfVariables_ = (this->dimension+ num_Vehicles);
+    this->numberOfVariables_ = (this->dimension+ num_Vehicles)+5;
     this->numberOfObjectives_ = 1; // DISTANCIA, ..
     this->numberOfConstraints_ = 2;
 
@@ -366,8 +549,8 @@ void miCEVRP::evaluateConstraints(Solution* s) {
         }
       
 
-    }std::wstring m2 = L"   "   L"\n";
-    OutputDebugStringW(m2.c_str());
+    }/*std::wstring m2 = L"   "   L"\n";*/
+    //OutputDebugStringW(m2.c_str());
 
     // Guardar penalizaciones
     s->setNumberOfViolatedConstraints(numberViolatedConstraints);

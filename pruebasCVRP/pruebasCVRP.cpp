@@ -8,9 +8,12 @@
 #include<tools/builders/ProblemBuilder.h>
 #include <tools/builders/MutationBuilder.h>
 #include <tools/builders/ImprovementBuilder.h>
+#include <tools/builders/RepairBuilder.h>
+#include "miReparacion.h"
 #include "miBusqueda.h"
 #include "miGenetico.h"
 #include "miMutacion.h"
+#include "miCruza.h"
 #include "CVRP.h"
 #include <chrono>
 #include <iostream>
@@ -21,12 +24,12 @@ using namespace std;
  
 int main()
 {
-    //std::mt19937 rng(310);  // Semilla fija
-    //srand(310);  // Semilla fija
-    //RandomNumber* rnd = RandomNumber::getInstance();
-    //       rnd->setSeed(310);
+    std::mt19937 rng(310);  // Semilla fija
+    srand(310);  // Semilla fija
+    RandomNumber* rnd = RandomNumber::getInstance();
+           rnd->setSeed(310);
 
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 1; i++)
     {
       
          
@@ -35,6 +38,10 @@ int main()
         cout << i << endl;
     
         
+        CrossoverBuilder::add("miCruza", new miCruza());
+
+        RepairBuilder::add("miReparacion", new miReparacion());
+
         MutationBuilder::add("miMutacion", new miMutacion());
 
         AlgorithmBuilder::add("miGenetico", new miGenetico());
@@ -55,7 +62,8 @@ int main()
         out.close();
       
         cout << *alg->getLastB() << endl;
-
+        cout << alg->getSolutionSet() <<endl;
+        
         // Liberar memoria manualmente
        /* delete alg;*/
         

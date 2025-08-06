@@ -10,7 +10,7 @@
 #include <vector>
 #include <cmath>
 #include "../WindowsRequirements.h"
-
+ 
 class   miCruza : public CrossoverOperator  {
 private:
 	const double EPS = 1.0e-14;

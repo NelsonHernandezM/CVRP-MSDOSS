@@ -89,10 +89,14 @@ void miMutacion::execute(Solution y) {
         }
     }
 
+ 
+   /* y.getProblem()->evaluate(&y);
+    y.getProblem()->evaluateConstraints(&y);*/
     // Liberar memoria
     delete[] indicesFijos;
     delete[] valoresFijos;
     delete[] elementosMutables;
+
 }
 
 //void miMutacion::execute(Solution y) {

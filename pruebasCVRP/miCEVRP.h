@@ -4,7 +4,8 @@
 #include "problems/Problem.h"
 #include "tools/Requirements.h"
 #include "../WindowsRequirements.h"
-
+#include <vector>
+#include <cmath>
 
 class miCEVRP : public Problem {
 	Requirements* config;
@@ -44,9 +45,22 @@ public:
 
 	Solution generateRandomSolution();
 	  bool isStation(int nodo);
+	  bool esRutaFactiblePorEnergia(const std::vector<int>& ruta);
+	  bool esRutaFactiblePorCapacidad(const std::vector<int>& ruta);
+	  int evaluarRutaDistancia(const std::vector<int>& ruta);
+	  double evaluarRutaEnergia(const std::vector<int>& ruta);
+	  bool esRutaFactible(const std::vector<int>& ruta);
+	  std::vector<std::vector<int>> separarSolucionPorRutas(Solution* s);
 	bool isDepot(int nodo);
 	bool isCustomer(int nodo);
 	int encontrarEstacionCercana(int nodo);
 
+	double getEnergyCapacity();
+	int** getCostMatrix();
+	double getConsumption_Rate();
+	int* getCustomerDemand();
+	int getMaxCapacity();
+	int getNumberCustomers();
+	int getNumVehicles();
 	 
 };

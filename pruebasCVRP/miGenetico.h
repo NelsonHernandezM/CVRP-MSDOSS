@@ -6,6 +6,7 @@
 #include "tools/builders/MutationBuilder.h"
 #include "tools/builders/SelectionBuilder.h"
 #include "tools/builders/CrossoverBuilder.h"
+#include "tools/builders/RepairBuilder.h"
 #include "tools/builders/ProblemBuilder.h"
 #include "tools/builders/ImprovementBuilder.h"
 #include "solutions/SolutionSet.h"
@@ -25,6 +26,7 @@ class miGenetico : public Algorithm
 	CrossoverOperator* co;
 	SelectionOperator* so;
 	ImprovementOperator* improvement;
+	RepairOperator* reparacion;
 
 public:
 	miGenetico();

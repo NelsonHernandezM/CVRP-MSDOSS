@@ -37,6 +37,7 @@ void miGenetico::initialize(Requirements* req) {
 	this->co = (CrossoverOperator*)CrossoverBuilder::execute(req);
 	this->so = (SelectionOperator*)SelectionBuilder::execute(req);
 	this->improvement = (ImprovementOperator*)ImprovementBuilder::execute(req);
+	this->reparacion = (RepairOperator*)RepairBuilder::execute(req);
 
 	pob = new SolutionSet((2 * N), this->problem_);
 
@@ -540,13 +541,9 @@ void busquedaLocalIterada(SolutionSet* solucionesIniciales) {
 
 
  
-
-
 void miGenetico::execute() {
 	int generacionesSinMejora = 0;
 	int topeGeneracioneSnMejora = 100;
-	/*
-	cout << "inicio" << endl;*/
 
 	int pobSize = 2 * this->N;
 	int generation = 0;
@@ -555,21 +552,15 @@ void miGenetico::execute() {
 
 	best = new SolutionSet(1, 1, this->problem_);
 	SolutionSet parents(2, 2, this->problem_);
-	SolutionSet childs(2, 2, this->problem_);
+	SolutionSet children(2, 2, this->problem_);
 
-	SolutionSet* hijosGenerados = new SolutionSet((2 * this->N), this->problem_);
-
-	for (int i = 0; i < pobSize; i++)
-	{
+	// Generar población inicial
+	for (int i = 0; i < pobSize; i++) {
 		nueva = this->problem_->generateRandomSolution();
-
 		this->problem_->evaluate(&nueva);
 		this->problem_->evaluateConstraints(&nueva);
-		
-		 
 
 		this->pob->add(nueva);
-			
 
 		if (first) {
 			best->set(0, nueva);
@@ -577,112 +568,90 @@ void miGenetico::execute() {
 		}
 		else {
 			bool maximization = this->problem_->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-			if (maximization && nueva.getObjective(0) > best->get(0).getObjective(0) && nueva.getNumberOfViolatedConstraints() == 0)
-			{
-				this->best->set(0, nueva);
+			if (maximization && nueva.getObjective(0) > best->get(0).getObjective(0) && nueva.getNumberOfViolatedConstraints() == 0) {
+				best->set(0, nueva);
 			}
-			else if (!maximization && nueva.getObjective(0) < best->get(0).getObjective(0) && nueva.getNumberOfViolatedConstraints() == 0)
-			{
-				this->best->set(0, nueva);
+			else if (!maximization && nueva.getObjective(0) < best->get(0).getObjective(0) && nueva.getNumberOfViolatedConstraints() == 0) {
+				best->set(0, nueva);
 			}
-
 		}
-
 	}
- 
 
-
+	// Bucle principal
 	while (generation < this->MAX_GENERATIONS) {
-		hijosGenerados = new SolutionSet((2 * this->N), this->problem_);
-		for (int i = 0; i < this->N; i++)
-		{
-
-
+		for (int i = 0; i < this->N; i++) {
+			// Selección
 			parents.set(0, this->so->execute(*pob));
 			parents.set(1, this->so->execute(*pob));
 
-			this->co->execute(parents, childs);
- 
+			// Cruza
+			this->co->execute(parents, children);
 
-			this->mo->execute(childs.get(0));
+			// Mutación
+			this->mo->execute(children.get(0));
+			this->mo->execute(children.get(1));
 
 		 
 
-			this->mo->execute(childs.get(1));
+			//// Reparación y mejora
+			this->reparacion->execute(children.get(0));
+			this->reparacion->execute(children.get(1));
 
+			// Evaluación
+			this->problem_->evaluate(children.getptr(0));
+			this->problem_->evaluateConstraints(children.getptr(0));
+			this->problem_->evaluate(children.getptr(1));
+			this->problem_->evaluateConstraints(children.getptr(1));
 
-			this->improvement->execute(childs.get(0));
+			this->improvement->execute(children.get(0));
+			this->improvement->execute(children.get(1));
 
-			this->improvement->execute(childs.get(1));
+			// Evaluación
+			this->problem_->evaluate(children.getptr(0));
+			this->problem_->evaluateConstraints(children.getptr(0));
+			this->problem_->evaluate(children.getptr(1));
+			this->problem_->evaluateConstraints(children.getptr(1));
 
+			// Comparar cada hijo con el mejor global
+			for (int h = 0; h < 2; h++) {
+			 
 
-			hijosGenerados->add(childs.get(0));
-			hijosGenerados->add(childs.get(1));
+				bool maximization = this->problem_->getObjectivesType()[0] == Constantes::MAXIMIZATION;
 
-
-		}
- 
-
-		busquedaLocalIterada(hijosGenerados);//hijos generados
-
-
-		Interval mejorHastaAhora = this->best->get(0).getObjective(0);
-
-		bool maximization = this->problem_->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-		for (int i = 0; i < hijosGenerados->size(); i++)
-		{
-			for (int k = 0; k < 2 * this->N; k++) // <- cambié 'i' por 'k'
-			{
-				if (maximization && hijosGenerados->get(i).getObjective(0) > best->get(0).getObjective(0) &&
-					hijosGenerados->get(i).getNumberOfViolatedConstraints() == 0) {
-					best->set(0, hijosGenerados->get(i));
-
+				if (maximization && children.get(h).getObjective(0) > best->get(0).getObjective(0) && children.get(h).getNumberOfViolatedConstraints() == 0) {
+					best->set(0, children.get(h));
 				}
-				else if (!maximization && hijosGenerados->get(i).getObjective(0) < best->get(0).getObjective(0) &&
-					hijosGenerados->get(i).getNumberOfViolatedConstraints() == 0) {
-					best->set(0, hijosGenerados->get(i));
-					std::wstring m2 = L"MEJORSO: " L"\n";
+				else if (!maximization && children.get(h).getObjective(0) < best->get(0).getObjective(0) && children.get(h).getNumberOfViolatedConstraints() == 0) {
+					best->set(0, children.get(h));
+					std::wstring m2 = L"MEJORSO: \n";
 					OutputDebugStringW(m2.c_str());
 				}
 			}
-		}
 
-		for (int j = 0; j < pobSize; j++)
-		{
-			for (int k = 0; k < 2 * this->N; k++) // <- también cambié 'i' por 'k'
-			{
-				if (maximization && hijosGenerados->get(j).getObjective(0) > pob->get(k).getObjective(0) &&
-					hijosGenerados->get(j).getNumberOfViolatedConstraints() == 0) {
-					pob->set(k, hijosGenerados->get(j));
+			// Intentar reemplazar hijos en la población
+			for (int h = 0; h < 2; h++) {
+			 
 
-					break;
-				}
-				else if (!maximization && hijosGenerados->get(j).getObjective(0) < pob->get(k).getObjective(0) &&
-					hijosGenerados->get(j).getNumberOfViolatedConstraints() == 0) {
-					pob->set(k, hijosGenerados->get(j));
-					std::wstring m = L"MEJORO: " L"\n";
-					OutputDebugStringW(m.c_str());
-					break;
+				for (int k = 0; k < pobSize; k++) {
+					bool maximization = this->problem_->getObjectivesType()[0] == Constantes::MAXIMIZATION;
+
+					if (maximization && children.get(h).getObjective(0) > pob->get(k).getObjective(0) && children.get(h).getNumberOfViolatedConstraints() == 0) {
+						pob->set(k, children.get(h));
+						break;
+					}
+					else if (!maximization && children.get(h).getObjective(0) < pob->get(k).getObjective(0) && children.get(h).getNumberOfViolatedConstraints() == 0) {
+						pob->set(k, children.get(h));
+						std::wstring m = L"MEJORO: \n";
+						OutputDebugStringW(m.c_str());
+						break;
+					}
 				}
 			}
 		}
 
-
-
-
 		++generation;
-
-
 	}
 
-
-
 	this->lastB_ = this->best;
-	 
-
- 
-
-
-
+	this->last_ = *pob;
 }
-

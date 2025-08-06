@@ -3,17 +3,18 @@
 
 //parámetros
 #MAX_GENERATIONS 10000
-#N 4
+#N 10
  
 
 #Problem-Instance _INPUT-EVRP/evrpInstancia.txt
 
 #mutation miMutacion
 #miMutacion-probability 0.2
+#repair miReparacion
 #selection RandomSelection
-#crossover SBXCrossover
+#crossover miCruza
 #SBXCrossover-probability 1.0
 #SBXCrossover-distributionIndex 15.0
 #improvement miBusqueda
-#Numero-iteraciones 1
+#Numero-iteraciones 2
 =====================================================================================================
