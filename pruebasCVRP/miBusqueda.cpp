@@ -31,33 +31,23 @@ void miBusqueda::initialize(Requirements* config) {
 
 Solution perturbacionSwaps(Solution solucion) {
 	RandomNumber* rnd = RandomNumber::getInstance();
-	//Solution copia(solucion.getProblem());
-
-	//// Copiar el array original
-	//for (int j = 0; j < copia.getNumVariables(); j++) {
-	//	copia.setVariableValue(j, solucion.getVariableValue(j));
-	//}
-
-	//// Evaluar la solución original
-	//copia.getProblem()->evaluate(&copia);
-	//copia.getProblem()->evaluateConstraints(&copia);
-
+ 
 	Problem* base = solucion.getProblem();
 	miCEVRP* problema = dynamic_cast<miCEVRP*>(base);
 
 	// Identificar elementos fijos (0, -1 y estaciones >=22)
 	std::vector<std::pair<int, int>> indicesYValores;
-	int contadorCiudadesFijas = 0;
+	int contadorNodosFijos = 0;
 	for (int i = 0; i < solucion.getNumVariables(); i++) {
 		int value = solucion.getVariableValue(i).L;
 		if (problema->isDepot(value) || value == -1 || problema->isStation(value)) {
-			contadorCiudadesFijas++;
+			contadorNodosFijos++;
 			indicesYValores.push_back(std::make_pair(i, value));
 		}
 	}
 
 	// Crear arreglo auxiliar solo con elementos mutables
-	int numMutables = solucion.getNumVariables() - contadorCiudadesFijas;
+	int numMutables = solucion.getNumVariables() - contadorNodosFijos;
 	if (numMutables <= 1) return solucion;  // No se puede perturbar
 
 	int* aux = new int[numMutables];
@@ -106,34 +96,21 @@ Solution perturbacionSwaps(Solution solucion) {
 	// Reconstruir solución
 	j = 0;
 	for (int i = 0; i < solucion.getNumVariables(); i++) {
-		bool esCiudadFija = false;
+		bool esNodoFijo = false;
 		for (const auto& par : indicesYValores) {
 			if (par.first == i) {
 				solucion.setVariableValue(i, par.second);
-				esCiudadFija = true;
+				esNodoFijo = true;
 				break;
 			}
 		}
-		if (!esCiudadFija) {
+		if (!esNodoFijo) {
 			solucion.setVariableValue(i, aux[j++]);
 		}
 	}
 
 	delete[] aux;
-
-	// Evaluar la nueva solución
-	//solucion.getProblem()->evaluate(&solucion);
-	//solucion.getProblem()->evaluateConstraints(&solucion);
-
-	// Verificar si es mejor solución
-	//bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-	//if (copia.getNumberOfViolatedConstraints() == 0) {
-	//	if ((maximization && copia.getObjective(0) > solucion.getObjective(0)) ||
-	//		(!maximization && copia.getObjective(0) < solucion.getObjective(0))) {
-	//		return copia;
-	//	}
-	//}
-
+ 
 	return solucion;
 }
 
@@ -142,34 +119,24 @@ Solution perturbacionSwaps(Solution solucion) {
 
 Solution perturbacionReversiones(Solution solucion) {
 	RandomNumber* rnd = RandomNumber::getInstance();
-	/*Solution copia(solucion.getProblem());*/
-
-	// Copiar el array original
-	//for (int j = 0; j < copia.getNumVariables(); j++) {
-	//	copia.setVariableValue(j, solucion.getVariableValue(j));
-	//}
-
-	// Evaluar la solución original
-	/*copia.getProblem()->evaluate(&copia);
-	copia.getProblem()->evaluateConstraints(&copia);*/
 
 	Problem* base = solucion.getProblem();
 	miCEVRP* problema = dynamic_cast<miCEVRP*>(base);
 	// Identificar elementos fijos (0, -1 y estaciones >=22)
 	std::vector<std::pair<int, int>> indicesYValores;
-	int contadorCiudadesFijas = 0;
+	int contadorNodosFijos = 0;
 	for (int i = 0; i < solucion.getNumVariables(); i++) {
 		int value = solucion.getVariableValue(i).L;
 
 
 		if (problema->isDepot(value) || value == -1 || problema->isStation(value)) {
-			contadorCiudadesFijas++;
+			contadorNodosFijos++;
 			indicesYValores.push_back(std::make_pair(i, value));
 		}
 	}
 
 	// Crear arreglo auxiliar solo con elementos mutables
-	int numMutables = solucion.getNumVariables() - contadorCiudadesFijas;
+	int numMutables = solucion.getNumVariables() - contadorNodosFijos;
 	if (numMutables <= 1) return solucion;  // No se puede perturbar
 
 	int* aux = new int[numMutables];
@@ -233,51 +200,39 @@ Solution perturbacionReversiones(Solution solucion) {
 	// Reconstruir solución
 	j = 0;
 	for (int i = 0; i < solucion.getNumVariables(); i++) {
-		bool esCiudadFija = false;
+		bool esNodoFijo = false;
 		for (const auto& par : indicesYValores) {
 			if (par.first == i) {
 				solucion.setVariableValue(i, par.second);
-				esCiudadFija = true;
+				esNodoFijo = true;
 				break;
 			}
 		}
-		if (!esCiudadFija) {
+		if (!esNodoFijo) {
 			solucion.setVariableValue(i, aux[j++]);
 		}
 	}
 
 	delete[] aux;
-
-	// Evaluar la nueva solución
-	//solucion.getProblem()->evaluate(&solucion);
-	//solucion.getProblem()->evaluateConstraints(&solucion);
-
-	// Verificar si es mejor solución
-	//bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-	//if (copia.getNumberOfViolatedConstraints() == 0) {
-	//	if ((maximization && copia.getObjective(0) > solucion.getObjective(0)) ||
-	//		(!maximization && copia.getObjective(0) < solucion.getObjective(0))) {
-
-	//		return copia;
-
-	//	}
-	//}
+ 
 
 	return solucion;
 }
+
+
 Solution hillClimbingSwaps(Solution sol) {
 	miCEVRP* problema = dynamic_cast<miCEVRP*>(sol.getProblem());
 	if (!problema) return sol;
 
-	std::vector<int> mutable_indices;
+	std::vector<int> indicesNodosMu;
 	for (int i = 0; i < sol.getNumVariables(); i++) {
 		int value = sol.getVariableValue(i).L;
 		if (!problema->isDepot(value) && value != -1 && !problema->isStation(value)) {
-			mutable_indices.push_back(i);
+			indicesNodosMu.push_back(i);
 		}
 	}
 
-	if (mutable_indices.size() < 2) {
+	if (indicesNodosMu.size() < 2) {
 		// Nada que intercambiar
 		return sol;
 	}
@@ -285,12 +240,12 @@ Solution hillClimbingSwaps(Solution sol) {
 	RandomNumber* rnd = RandomNumber::getInstance();
 	const bool maximization = sol.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
 
-	const int total_posibles_swaps = (mutable_indices.size() * (mutable_indices.size() - 1)) / 2;
+	const int total_posibles_swaps = (indicesNodosMu.size() * (indicesNodosMu.size() - 1)) / 2;
 	const int max_swaps_por_iteracion = std::max(10, total_posibles_swaps / 10);
 
-	const int max_iteraciones_sin_mejora = std::max(5, int(mutable_indices.size() / 5));
+	const int max_iteraciones_sin_mejora = std::max(5, int(indicesNodosMu.size() / 5));
 
-	const int limite_total_iteraciones = std::max(100, int(mutable_indices.size() * 5));
+	const int limite_total_iteraciones = std::max(100, int(indicesNodosMu.size() * 5));
 
 
 	int iteraciones_sin_mejora = 0;
@@ -308,17 +263,17 @@ Solution hillClimbingSwaps(Solution sol) {
 
 		int intentos = 0;
 		while (intentos < max_swaps_por_iteracion) {
-			int idx1 = mutable_indices[rnd->nextInt(mutable_indices.size() - 1)];
-			int idx2 = mutable_indices[rnd->nextInt(mutable_indices.size() - 1)];
+			int indice1 = indicesNodosMu[rnd->nextInt(indicesNodosMu.size() - 1)];
+			int indice2 = indicesNodosMu[rnd->nextInt(indicesNodosMu.size() - 1)];
 
 			intentos++;  // Siempre incrementar el contador
 
-			if (idx1 == idx2) continue;
+			if (indice1 == indice2) continue;
 
 			// Swap
-			int temp = sol.getVariableValue(idx1).L;
-			sol.setVariableValue(idx1, sol.getVariableValue(idx2).L);
-			sol.setVariableValue(idx2, temp);
+			int temp = sol.getVariableValue(indice1).L;
+			sol.setVariableValue(indice1, sol.getVariableValue(indice2).L);
+			sol.setVariableValue(indice2, temp);
 
 			sol.getProblem()->evaluate(&sol);
 			sol.getProblem()->evaluateConstraints(&sol);
@@ -332,8 +287,8 @@ Solution hillClimbingSwaps(Solution sol) {
 			}
 
 			// Revertir
-			sol.setVariableValue(idx1, valores_originales[idx1]);
-			sol.setVariableValue(idx2, valores_originales[idx2]);
+			sol.setVariableValue(indice1, valores_originales[indice1]);
+			sol.setVariableValue(indice2, valores_originales[indice2]);
 		}
 
 		if (mejora) {
@@ -401,392 +356,3 @@ void miBusqueda::execute(Solution y) {
 		}
 	}
 }
-
-//
-//Solution perturbacionSwaps(Solution solucion) {
-//	RandomNumber* rnd = RandomNumber::getInstance();
-//	//Solution copia(solucion.getProblem());
-//
-//	//// Copiar el array original
-//	//for (int j = 0; j < copia.getNumVariables(); j++) {
-//	//	copia.setVariableValue(j, solucion.getVariableValue(j));
-//	//}
-//
-//	//// Evaluar la solución original
-//	//copia.getProblem()->evaluate(&copia);
-//	//copia.getProblem()->evaluateConstraints(&copia);
-//
-//	Problem* base = solucion.getProblem();
-//	miCEVRP* problema = dynamic_cast<miCEVRP*>(base);
-//
-//	// Identificar elementos fijos (0, -1 y estaciones >=22)
-//	std::vector<std::pair<int, int>> indicesYValores;
-//	int contadorCiudadesFijas = 0;
-//	for (int i = 0; i < solucion.getNumVariables(); i++) {
-//		int value = solucion.getVariableValue(i).L;
-//		if (problema->isDepot(value) || value == -1 || problema->isStation(value)) {
-//			contadorCiudadesFijas++;
-//			indicesYValores.push_back(std::make_pair(i, value));
-//		}
-//	}
-//
-//	// Crear arreglo auxiliar solo con elementos mutables
-//	int numMutables = solucion.getNumVariables() - contadorCiudadesFijas;
-//	if (numMutables <= 1) return solucion;  // No se puede perturbar
-//
-//	int* aux = new int[numMutables];
-//	int j = 0;
-//	for (int i = 0; i < solucion.getNumVariables(); i++) {
-//		int value = solucion.getVariableValue(i).L;
-//
-//
-//		if (!problema->isDepot(value) && value != -1 && !problema->isStation(value)) {
-//			aux[j++] = value;
-//		}
-//	}
-//
-//	// Cálculo dinámico del número de perturbaciones
-//	int numPerturbaciones = 0;
-//	if (numMutables <= 5) {
-//		numPerturbaciones = 1;  // Casos muy pequeños
-//	}
-//	else if (numMutables <= 15) {
-//		numPerturbaciones = 2 + rnd->nextInt(1);  // 2-3 perturbaciones
-//	}
-//	else {
-//		// Para soluciones grandes: 10-15% de los elementos mutables
-//		numPerturbaciones = std::max(3, static_cast<int>(numMutables * 0.12));
-//		// Límite superior para no excederse
-//		numPerturbaciones = std::min(numPerturbaciones, 20);
-//	}
-//
-//	// Tipo de perturbación (swap aleatorio o inversión)
-//	int tipoPerturbacion = rnd->nextInt(1);
-//
-//
-//	// SWAPS ALEATORIOS
-//	for (int i = 0; i < numPerturbaciones; i++) {
-//		int idx1 = rnd->nextInt(numMutables - 1);
-//		int idx2;
-//		do {
-//			idx2 = rnd->nextInt(numMutables - 1);
-//		} while (idx1 == idx2);
-//
-//		std::swap(aux[idx1], aux[idx2]);
-//	}
-//
-//
-//
-//	// Reconstruir solución
-//	j = 0;
-//	for (int i = 0; i < solucion.getNumVariables(); i++) {
-//		bool esCiudadFija = false;
-//		for (const auto& par : indicesYValores) {
-//			if (par.first == i) {
-//				solucion.setVariableValue(i, par.second);
-//				esCiudadFija = true;
-//				break;
-//			}
-//		}
-//		if (!esCiudadFija) {
-//			solucion.setVariableValue(i, aux[j++]);
-//		}
-//	}
-//
-//	delete[] aux;
-//
-//	// Evaluar la nueva solución
-//	//solucion.getProblem()->evaluate(&solucion);
-//	//solucion.getProblem()->evaluateConstraints(&solucion);
-//
-//	// Verificar si es mejor solución
-//	//bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-//	//if (copia.getNumberOfViolatedConstraints() == 0) {
-//	//	if ((maximization && copia.getObjective(0) > solucion.getObjective(0)) ||
-//	//		(!maximization && copia.getObjective(0) < solucion.getObjective(0))) {
-//	//		return copia;
-//	//	}
-//	//}
-//
-//	return solucion;
-//}
-
-
-//Solution perturbacionSwaps(Solution solucion) {
-//	RandomNumber* rnd = RandomNumber::getInstance();
-//	Solution copia(solucion.getProblem());
-//
-//	// Copiar el array original
-//	for (int j = 0; j < copia.getNumVariables(); j++) {
-//		copia.setVariableValue(j, solucion.getVariableValue(j));
-//	}
-//
-//	// Evaluar la solución original
-//	copia.getProblem()->evaluate(&copia);
-//	copia.getProblem()->evaluateConstraints(&copia);
-//
-//	Problem* base = copia.getProblem();
-//	miCEVRP* problema = dynamic_cast<miCEVRP*>(base);
-//
-//	// Identificar elementos fijos (0, -1 y estaciones >=22)
-//	std::vector<std::pair<int, int>> indicesYValores;
-//	int contadorCiudadesFijas = 0;
-//	for (int i = 0; i < copia.getNumVariables(); i++) {
-//		int value = copia.getVariableValue(i).L;
-//		if (problema->isDepot(value) || value == -1 || problema->isStation(value)) {
-//			contadorCiudadesFijas++;
-//			indicesYValores.push_back(std::make_pair(i, value));
-//		}
-//	}
-//
-//	// Crear arreglo auxiliar solo con elementos mutables
-//	int numMutables = copia.getNumVariables() - contadorCiudadesFijas;
-//	if (numMutables <= 1) return solucion;  // No se puede perturbar
-//
-//	int* aux = new int[numMutables];
-//	int j = 0;
-//	for (int i = 0; i < copia.getNumVariables(); i++) {
-//		int value = copia.getVariableValue(i).L;
-//
-//		
-//		if (!problema->isDepot(value) && value != -1 && !problema->isStation(value)) {
-//			aux[j++] = value;
-//		}
-//	}
-//
-//	// Cálculo dinámico del número de perturbaciones
-//	int numPerturbaciones = 0;
-//	if (numMutables <= 5) {
-//		numPerturbaciones = 1;  // Casos muy pequeños
-//	}
-//	else if (numMutables <= 15) {
-//		numPerturbaciones = 2 + rnd->nextInt(1);  // 2-3 perturbaciones
-//	}
-//	else {
-//		// Para soluciones grandes: 10-15% de los elementos mutables
-//		numPerturbaciones = std::max(3, static_cast<int>(numMutables * 0.12));
-//		// Límite superior para no excederse
-//		numPerturbaciones = std::min(numPerturbaciones, 20);
-//	}
-//
-//	// Tipo de perturbación (swap aleatorio o inversión)
-//	int tipoPerturbacion = rnd->nextInt(1);
-//
-//
-//	// SWAPS ALEATORIOS
-//	for (int i = 0; i < numPerturbaciones; i++) {
-//		int idx1 = rnd->nextInt(numMutables - 1);
-//		int idx2;
-//		do {
-//			idx2 = rnd->nextInt(numMutables - 1);
-//		} while (idx1 == idx2);
-//
-//		std::swap(aux[idx1], aux[idx2]);
-//	}
-//
-//
-//
-//	// Reconstruir solución
-//	j = 0;
-//	for (int i = 0; i < copia.getNumVariables(); i++) {
-//		bool esCiudadFija = false;
-//		for (const auto& par : indicesYValores) {
-//			if (par.first == i) {
-//				copia.setVariableValue(i, par.second);
-//				esCiudadFija = true;
-//				break;
-//			}
-//		}
-//		if (!esCiudadFija) {
-//			copia.setVariableValue(i, aux[j++]);
-//		}
-//	}
-//
-//	delete[] aux;
-//
-//	// Evaluar la nueva solución
-//	copia.getProblem()->evaluate(&copia);
-//	copia.getProblem()->evaluateConstraints(&copia);
-//
-//	// Verificar si es mejor solución
-//	bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-//	if (copia.getNumberOfViolatedConstraints() == 0) {
-//		if ((maximization && copia.getObjective(0) > solucion.getObjective(0)) ||
-//			(!maximization && copia.getObjective(0) < solucion.getObjective(0))) {
-//			return copia;
-//		}
-//	}
-//
-//	return solucion;
-//}
-
-
-
-
-
-
-//Solution perturbacionReversiones(Solution solucion) {
-//	RandomNumber* rnd = RandomNumber::getInstance();
-//	Solution copia(solucion.getProblem());
-//
-//	// Copiar el array original
-//	for (int j = 0; j < copia.getNumVariables(); j++) {
-//		copia.setVariableValue(j, solucion.getVariableValue(j));
-//	}
-//
-//	// Evaluar la solución original
-//	copia.getProblem()->evaluate(&copia);
-//	copia.getProblem()->evaluateConstraints(&copia);
-//
-//	Problem* base = copia.getProblem();
-//	miCEVRP* problema = dynamic_cast<miCEVRP*>(base);
-//	// Identificar elementos fijos (0, -1 y estaciones >=22)
-//	std::vector<std::pair<int, int>> indicesYValores;
-//	int contadorCiudadesFijas = 0;
-//	for (int i = 0; i < copia.getNumVariables(); i++) {
-//		int value = copia.getVariableValue(i).L;
-//
-//
-//		if (problema->isDepot(value) || value == -1 || problema->isStation(value)) {
-//			contadorCiudadesFijas++;
-//			indicesYValores.push_back(std::make_pair(i, value));
-//		}
-//	}
-//
-//	// Crear arreglo auxiliar solo con elementos mutables
-//	int numMutables = copia.getNumVariables() - contadorCiudadesFijas;
-//	if (numMutables <= 1) return solucion;  // No se puede perturbar
-//
-//	int* aux = new int[numMutables];
-//	int j = 0;
-//	for (int i = 0; i < copia.getNumVariables(); i++) {
-//		int value = copia.getVariableValue(i).L;
-//
-//
-//	 
-//
-//		if (!problema->isDepot(value) && value != -1 && !problema->isStation(value)) {
-//			aux[j++] = value;
-//		}
-//	}
-//
-//	// Cálculo dinámico del número de perturbaciones
-//	int numPerturbaciones = 0;
-//	if (numMutables <= 5) {
-//		numPerturbaciones = 1;  // Casos muy pequeños
-//	}
-//	else if (numMutables <= 15) {
-//		numPerturbaciones = 2 + rnd->nextInt(1);  // 2-3 perturbaciones
-//	}
-//	else {
-//		// Para soluciones grandes: 10-15% de los elementos mutables
-//		numPerturbaciones = std::max(3, static_cast<int>(numMutables * 0.12));
-//		// Límite superior para no excederse
-//		numPerturbaciones = std::min(numPerturbaciones, 20);
-//	}
-//
-//	// Tipo de perturbación (swap aleatorio o inversión)
-//	int tipoPerturbacion = rnd->nextInt(1);
-//
-//
-//	// INVERSIONES
-//	for (int i = 0; i < numPerturbaciones; i++) {
-//		int inicio = rnd->nextInt(numMutables - 1);
-//		int fin;
-//		int intentos = 0;
-//		do {
-//			fin = rnd->nextInt(numMutables - 1);
-//			intentos++;
-//			// Prevenir loops infinitos en casos límite
-//			if (intentos > 10) {
-//				fin = (inicio + 1) % numMutables;
-//				break;
-//			}
-//		} while (abs(inicio - fin) < 2);  // Mínimo 3 elementos
-//
-//		if (inicio > fin) std::swap(inicio, fin);
-//
-//		// Realizar la inversión
-//		while (inicio < fin) {
-//			std::swap(aux[inicio], aux[fin]);
-//			inicio++;
-//			fin--;
-//		}
-//	}
-//
-//
-//	// Reconstruir solución
-//	j = 0;
-//	for (int i = 0; i < copia.getNumVariables(); i++) {
-//		bool esCiudadFija = false;
-//		for (const auto& par : indicesYValores) {
-//			if (par.first == i) {
-//				copia.setVariableValue(i, par.second);
-//				esCiudadFija = true;
-//				break;
-//			}
-//		}
-//		if (!esCiudadFija) {
-//			copia.setVariableValue(i, aux[j++]);
-//		}
-//	}
-//
-//	delete[] aux;
-//
-//	// Evaluar la nueva solución
-//	copia.getProblem()->evaluate(&copia);
-//	copia.getProblem()->evaluateConstraints(&copia);
-//
-//	// Verificar si es mejor solución
-//	bool maximization = solucion.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-//	if (copia.getNumberOfViolatedConstraints() == 0) {
-//		if ((maximization && copia.getObjective(0) > solucion.getObjective(0)) ||
-//			(!maximization && copia.getObjective(0) < solucion.getObjective(0))) {
-//			 
-//			return copia;
-//
-//		}
-//	}
-//
-//	return solucion;
-//}
-
-
-
-//
-//void miBusqueda::execute(Solution y) {
-//
-//
-//	int numeroMAX_iteraciones = this->param.get("#Numero-iteraciones").getInt();
-//
-//
-//	y = perturbacionSwaps(y);
-//
-//
-//	for (int i = 0; i < numeroMAX_iteraciones; i++) {
-//
-//		y = perturbacionReversiones(y);
-//		y = perturbacionSwaps(y);
-//
-//	}
-//
-//
-//}
-
-
-
-//void busquedaLocalIterada(SolutionSet* solucionesIniciales) {
-//
-//	int numeroMAX_iteraciones= this->param.get("#Numero-iteraciones").getInt();
-//
-//	for (int i = 0; i < numeroMAX_iteraciones; i++) {
-//		
-//
-//
-//		Solution nuevaSolucion = perturbacionPermutacionVRP(solucionesIniciales->get(i));
-//
-//
-//		solucionesIniciales->set(i, nuevaSolucion);
-//
-//	}
-//}
