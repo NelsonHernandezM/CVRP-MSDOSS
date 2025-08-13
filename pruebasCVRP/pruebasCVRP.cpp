@@ -27,9 +27,9 @@ int main()
     std::mt19937 rng(310);  // Semilla fija
     srand(310);  // Semilla fija
     RandomNumber* rnd = RandomNumber::getInstance();
-           rnd->setSeed(310);
+    rnd->setSeed(310);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 1; i++)
     {
       
          

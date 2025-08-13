@@ -180,7 +180,7 @@ bool miCEVRP::esRutaFactible(const std::vector<int>& ruta) {
             return false;
         }
 
-        // 🟡 Dos estaciones seguidas
+        // 🟡 Dos estaciones seguidas  (según la literatura no es factible la visita de 2 estaciones de recarga seguidas)
         if (i >= 1 && isStation(ruta[i]) && isStation(hasta)) {
             return false;
         }
