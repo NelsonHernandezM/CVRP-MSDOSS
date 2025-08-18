@@ -2,8 +2,8 @@
 #Algorithm miGenetico
 
 //parámetros
-#MAX_GENERATIONS 1000
-#N 100
+#MAX_GENERATIONS 10000
+#N 50
  
 
 #Problem-Instance _INPUT-EVRP/evrpInstancia.txt
@@ -14,5 +14,5 @@
 #selection RandomSelection
 #crossover miCruza
 #improvement miBusqueda
-#Numero-iteraciones 5
+#Numero-iteraciones 10
 =====================================================================================================

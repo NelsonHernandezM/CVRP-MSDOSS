@@ -6,14 +6,14 @@
 #include "tools/Requirements.h"
 #include <vector>
 #include <cmath>
-#include <utility> // Para std::swap
+#include <utility>  
 #include <numeric>
 #include <algorithm>
 #include <cassert>
 
-// Clase principal
+ 
 miBusqueda::miBusqueda() {
-    // Constructor
+ 
 }
 
 void miBusqueda::initialize(Requirements* config) {
@@ -21,14 +21,19 @@ void miBusqueda::initialize(Requirements* config) {
     this->param = *config->load();
 }
 
-// Función auxiliar para obtener los índices de los nodos mutables y sus valores.
+ 
+
+void reconstruirSolucion(Solution& solucion, const std::vector<int>& valoresMutables, const std::vector<int>& indicesMutables) {
+    for (size_t i = 0; i < indicesMutables.size(); ++i) {
+        solucion.setVariableValue(indicesMutables[i], valoresMutables[i]);
+    }
+}
+
 std::vector<int> obtenerValoresNodosMutables(Solution& solucion, miCEVRP* problema, std::vector<int>& indicesMutables) {
     indicesMutables.clear();
     std::vector<int> valoresMutables;
-
     indicesMutables.reserve(solucion.getNumVariables());
     valoresMutables.reserve(solucion.getNumVariables());
-
     for (int i = 0; i < solucion.getNumVariables(); ++i) {
         int value = solucion.getVariableValue(i).L;
         if (!problema->isDepot(value) && value != -1 && !problema->isStation(value)) {
@@ -38,62 +43,82 @@ std::vector<int> obtenerValoresNodosMutables(Solution& solucion, miCEVRP* proble
     }
     return valoresMutables;
 }
-
-// Función auxiliar para calcular el número de perturbaciones
-int calcularNumPerturbaciones(size_t numMutables, RandomNumber* rnd) {
-    if (numMutables <= 5) {
-        return 1;
-    }
-    if (numMutables <= 15) {
-        return 2 + rnd->nextInt(1);
-    }
-    int numPerturbaciones = std::max(3, static_cast<int>(numMutables * 0.12));
-    return std::min(numPerturbaciones, 20);
-}
-
-// Reconstruir la solución a partir de un vector de valores mutables y los índices fijos.
-void reconstruirSolucion(Solution& solucion, const std::vector<int>& valoresMutables, const std::vector<int>& indicesMutables) {
-    for (size_t i = 0; i < indicesMutables.size(); ++i) {
-        solucion.setVariableValue(indicesMutables[i], valoresMutables[i]);
-    }
-}
-
-// Perturbación de Swaps, ahora sobre un vector de valores
-void perturbacionSwaps(std::vector<int>& valoresMutables) {
-    if (valoresMutables.size() < 2) return;
+ 
+bool localSearch(Solution& sol, std::vector<int>& valoresMutables, const std::vector<int>& indicesMutables) {
+    if (valoresMutables.size() < 2) return false;
 
     RandomNumber* rnd = RandomNumber::getInstance();
-    int numPerturbaciones = calcularNumPerturbaciones(valoresMutables.size(), rnd);
+    const bool maximization = sol.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
+    bool mejora_global = false;
 
-    for (int i = 0; i < numPerturbaciones; ++i) {
-        int idx1 = rnd->nextInt(valoresMutables.size() - 1);
-        int idx2;
-        do {
-            idx2 = rnd->nextInt(valoresMutables.size() - 1);
-        } while (idx1 == idx2);
+    reconstruirSolucion(sol, valoresMutables, indicesMutables);
+    sol.getProblem()->evaluate(&sol);
+    sol.getProblem()->evaluateConstraints(&sol);
+    Interval mejor_objetivo = sol.getObjective(0);
 
-        std::swap(valoresMutables[idx1], valoresMutables[idx2]);
+    bool mejora_en_iteracion = true;
+    while (mejora_en_iteracion) {
+        mejora_en_iteracion = false;
+        const int intentos_maximos = valoresMutables.size() * 5; // Explorar un número razonable de vecinos
+
+        for (int i = 0; i < intentos_maximos; ++i) {
+            std::vector<int> vecino_valores = valoresMutables;
+            int idx1 = rnd->nextInt(vecino_valores.size() - 1);
+            int idx2;
+            do {
+                idx2 = rnd->nextInt(vecino_valores.size() - 1);
+            } while (idx1 == idx2);
+            std::swap(vecino_valores[idx1], vecino_valores[idx2]);
+
+            reconstruirSolucion(sol, vecino_valores, indicesMutables);
+            sol.getProblem()->evaluate(&sol);
+            sol.getProblem()->evaluateConstraints(&sol);
+
+            if (sol.getNumberOfViolatedConstraints() == 0) {
+                Interval objetivo_vecino = sol.getObjective(0);
+                bool es_mejor = (maximization && objetivo_vecino > mejor_objetivo) ||
+                    (!maximization && objetivo_vecino < mejor_objetivo);
+
+                if (es_mejor) {
+                    valoresMutables = vecino_valores;
+                    mejor_objetivo = objetivo_vecino;
+                    mejora_en_iteracion = true;
+                    mejora_global = true;
+                    break;
+                }
+            }
+        }
     }
+
+    reconstruirSolucion(sol, valoresMutables, indicesMutables);
+    sol.getProblem()->evaluate(&sol);
+    sol.getProblem()->evaluateConstraints(&sol);
+
+    return mejora_global;
 }
 
-// Perturbación de Reversiones, ahora sobre un vector de valores
-void perturbacionReversiones(std::vector<int>& valoresMutables) {
-    if (valoresMutables.size() < 2) return;
+// --- Componente 2: MECANISMO DE PERTURBACIÓN (Perturbation) ---
+// Aplica un número de inversiones de subsecuencias para "sacudir" la solución.
+// La "fuerza" de la perturbación es clave: debe ser suficiente para escapar del
+// óptimo local, pero no tanto como para reiniciar la búsqueda aleatoriamente.
+void perturbarSolucion(std::vector<int>& valoresMutables) {
+    if (valoresMutables.size() < 4) return; // Necesita al menos 4 elementos para una reversión con sentido.
 
     RandomNumber* rnd = RandomNumber::getInstance();
-    int numPerturbaciones = calcularNumPerturbaciones(valoresMutables.size(), rnd);
 
-    for (int i = 0; i < numPerturbaciones; ++i) {
+    // Calcular el número de perturbaciones (la "fuerza")
+    int num_perturbaciones = 1;
+    if (valoresMutables.size() > 10) {
+        // La fuerza de la perturbación es ~15% del tamaño del problema, con un mínimo de 2.
+        num_perturbaciones = std::max(2, static_cast<int>(valoresMutables.size() * 0.15));
+    }
+
+    for (int i = 0; i < num_perturbaciones; ++i) {
         int inicio = rnd->nextInt(valoresMutables.size() - 1);
         int fin;
-        int intentos = 0;
         do {
             fin = rnd->nextInt(valoresMutables.size() - 1);
-            if (intentos++ > 100) {
-                fin = (inicio + 1) % valoresMutables.size();
-                break;
-            }
-        } while (std::abs(inicio - fin) < 2);
+        } while (std::abs(inicio - fin) < 2); // Asegurar que el segmento a revertir tenga al menos 2 elementos.
 
         if (inicio > fin) std::swap(inicio, fin);
 
@@ -101,120 +126,61 @@ void perturbacionReversiones(std::vector<int>& valoresMutables) {
     }
 }
 
-// Hill Climbing, ahora sobre un vector de valores
-bool hillClimbingSwaps(Solution& sol, std::vector<int>& valoresMutables, const std::vector<int>& indicesMutables) {
-    if (valoresMutables.size() < 2) return false;
-
-    RandomNumber* rnd = RandomNumber::getInstance();
-    const bool maximization = sol.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-    const size_t num_mutables = valoresMutables.size();
-
-    const int max_swaps_por_iteracion = std::max(10, static_cast<int>(num_mutables * (num_mutables - 1) / 30));
-    const int max_iteraciones_sin_mejora = std::max(5, static_cast<int>(num_mutables / 10));
-    const int limite_total_iteraciones = std::max(100, static_cast<int>(num_mutables * 3));
-
-    int iteraciones_sin_mejora = 0;
-    int total_iteraciones = 0;
-    bool mejora_global = false;
-
-    // Evaluar la solución antes de empezar el hill climbing
-    sol.getProblem()->evaluate(&sol);
-    sol.getProblem()->evaluateConstraints(&sol);
-    Interval objetivo_original = sol.getObjective(0);
-
-    while (iteraciones_sin_mejora < max_iteraciones_sin_mejora && total_iteraciones < limite_total_iteraciones) {
-        total_iteraciones++;
-        bool mejora_local = false;
-
-        // Creamos una copia del vector para los intentos del bucle interno
-        std::vector<int> temp_valores = valoresMutables;
-
-        for (int i = 0; i < max_swaps_por_iteracion; ++i) {
-            int idx1 = rnd->nextInt(num_mutables - 1);
-            int idx2;
-            do {
-                idx2 = rnd->nextInt(num_mutables - 1);
-            } while (idx1 == idx2);
-
-            std::swap(temp_valores[idx1], temp_valores[idx2]);
-
-            // Reconstruir temporalmente la solución y evaluar
-            reconstruirSolucion(sol, temp_valores, indicesMutables);
-            sol.getProblem()->evaluate(&sol);
-            sol.getProblem()->evaluateConstraints(&sol);
-
-            if (sol.getNumberOfViolatedConstraints() == 0) {
-                if ((maximization && sol.getObjective(0) > objetivo_original) ||
-                    (!maximization && sol.getObjective(0) < objetivo_original)) {
-
-                    valoresMutables = temp_valores; // Actualizamos el vector con la mejor versión
-                    objetivo_original = sol.getObjective(0);
-                    mejora_local = true;
-                    mejora_global = true;
-                    break;
-                }
-            }
-
-            // Si no hay mejora, revertir el swap
-            std::swap(temp_valores[idx1], temp_valores[idx2]);
-        }
-
-        if (mejora_local) {
-            iteraciones_sin_mejora = 0;
-        }
-        else {
-            iteraciones_sin_mejora++;
-        }
-    }
-    // Reconstruir la solución final con el mejor vector encontrado
-    reconstruirSolucion(sol, valoresMutables, indicesMutables);
-    return mejora_global;
-}
-
 
 void miBusqueda::execute(Solution y) {
     int numeroMAX_iteraciones = this->param.get("#Numero-iteraciones").getInt();
-
-    // Se extraen los valores una sola vez al principio
     miCEVRP* problema = dynamic_cast<miCEVRP*>(y.getProblem());
+    const bool maximization = y.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
+
+ 
     std::vector<int> indicesMutables;
-    std::vector<int> valoresMutables = obtenerValoresNodosMutables(y, problema, indicesMutables);
+    std::vector<int> sol_inicial = obtenerValoresNodosMutables(y, problema, indicesMutables);
+ 
+    localSearch(y, sol_inicial, indicesMutables);
 
-    // Asumimos que 'y' tiene los valores de inicio
-
-    // Primer Hill Climbing
-    hillClimbingSwaps(y, valoresMutables, indicesMutables);
-
-    // Se evalúa la solución inicial (después del primer HC)
+ 
+    std::vector<int> valores_mejor_solucion = sol_inicial;
     y.getProblem()->evaluate(&y);
     y.getProblem()->evaluateConstraints(&y);
-    Interval objetivoOriginal = y.getObjective(0);
+    Interval objetivo_mejor_solucion = y.getObjective(0);
 
-    bool maximization = y.getProblem()->getObjectivesType()[0] == Constantes::MAXIMIZATION;
-
+    // ---  ILS ---
     for (int i = 0; i < numeroMAX_iteraciones; i++) {
-        std::vector<int> temp_valores = valoresMutables;
+        // Trabajar con una copia para no perder la mejor solución si no se mejora.
+        std::vector<int> valores_candidatos = valores_mejor_solucion;
 
-        perturbacionReversiones(temp_valores);
+        
+        perturbarSolucion(valores_candidatos);
 
-        // Reconstruimos la solución temporalmente para el hill climbing
-        reconstruirSolucion(y, temp_valores, indicesMutables);
-        bool mejora_hc = hillClimbingSwaps(y, temp_valores, indicesMutables);
+        // Cargar los valores perturbados en el objeto 'y' para la siguiente búsqueda.
+        reconstruirSolucion(y, valores_candidatos, indicesMutables);
+
+        // --- Componente 1 (de nuevo): BÚSQUEDA LOCAL ---
+        // Aplicar la búsqueda local a la solución recién perturbada.
+        localSearch(y, valores_candidatos, indicesMutables);
 
         y.getProblem()->evaluate(&y);
         y.getProblem()->evaluateConstraints(&y);
 
-        if (y.getNumberOfViolatedConstraints() == 0 &&
-            ((maximization && y.getObjective(0) > objetivoOriginal) ||
-                (!maximization && y.getObjective(0) < objetivoOriginal))) {
+        // --- Componente 3: CRITERIO DE ACEPTACIÓN ---
+        // Decidir si el nuevo óptimo local reemplaza al mejor que teníamos.
+        if (y.getNumberOfViolatedConstraints() == 0) {
+            Interval objetivo_candidato = y.getObjective(0);
+            bool es_mejor = (maximization && objetivo_candidato > objetivo_mejor_solucion) ||
+                (!maximization && objetivo_candidato < objetivo_mejor_solucion);
 
-            objetivoOriginal = y.getObjective(0);
-            valoresMutables = temp_valores; // Se guarda la mejor versión
-            //OutputDebugStringW(L"MEJORO--BUSQUEDA LOCAL: \n");
+            if (es_mejor) {
+                // Aceptación: La nueva solución es mejor, la guardamos.
+                valores_mejor_solucion = valores_candidatos;
+                objetivo_mejor_solucion = objetivo_candidato;
+            }
         }
-        else {
-            // Si no mejora, restauramos la solución original con los valores que teníamos
-            reconstruirSolucion(y, valoresMutables, indicesMutables);
-        }
+        // Si no es mejor, no hacemos nada. En la siguiente iteración,
+        // se volverá a perturbar a partir de la misma 'valores_mejor_solucion'.
     }
+
+    // Al final del proceso, asegurar que el objeto 'y' contenga la mejor solución global encontrada.
+    reconstruirSolucion(y, valores_mejor_solucion, indicesMutables);
+    y.getProblem()->evaluate(&y);
+    y.getProblem()->evaluateConstraints(&y);
 }
