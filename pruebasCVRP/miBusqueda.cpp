@@ -97,10 +97,7 @@ bool localSearch(Solution& sol, std::vector<int>& valoresMutables, const std::ve
     return mejora_global;
 }
 
-// --- Componente 2: MECANISMO DE PERTURBACIÓN (Perturbation) ---
-// Aplica un número de inversiones de subsecuencias para "sacudir" la solución.
-// La "fuerza" de la perturbación es clave: debe ser suficiente para escapar del
-// óptimo local, pero no tanto como para reiniciar la búsqueda aleatoriamente.
+ 
 void perturbarSolucion(std::vector<int>& valoresMutables) {
     if (valoresMutables.size() < 4) return; // Necesita al menos 4 elementos para una reversión con sentido.
 
@@ -155,14 +152,14 @@ void miBusqueda::execute(Solution y) {
         // Cargar los valores perturbados en el objeto 'y' para la siguiente búsqueda.
         reconstruirSolucion(y, valores_candidatos, indicesMutables);
 
-        // --- Componente 1 (de nuevo): BÚSQUEDA LOCAL ---
+        
         // Aplicar la búsqueda local a la solución recién perturbada.
         localSearch(y, valores_candidatos, indicesMutables);
 
         y.getProblem()->evaluate(&y);
         y.getProblem()->evaluateConstraints(&y);
 
-        // --- Componente 3: CRITERIO DE ACEPTACIÓN ---
+        
         // Decidir si el nuevo óptimo local reemplaza al mejor que teníamos.
         if (y.getNumberOfViolatedConstraints() == 0) {
             Interval objetivo_candidato = y.getObjective(0);
@@ -170,16 +167,15 @@ void miBusqueda::execute(Solution y) {
                 (!maximization && objetivo_candidato < objetivo_mejor_solucion);
 
             if (es_mejor) {
-                // Aceptación: La nueva solución es mejor, la guardamos.
+                // Aceptar
                 valores_mejor_solucion = valores_candidatos;
                 objetivo_mejor_solucion = objetivo_candidato;
             }
         }
-        // Si no es mejor, no hacemos nada. En la siguiente iteración,
-        // se volverá a perturbar a partir de la misma 'valores_mejor_solucion'.
+        
     }
 
-    // Al final del proceso, asegurar que el objeto 'y' contenga la mejor solución global encontrada.
+ 
     reconstruirSolucion(y, valores_mejor_solucion, indicesMutables);
     y.getProblem()->evaluate(&y);
     y.getProblem()->evaluateConstraints(&y);
