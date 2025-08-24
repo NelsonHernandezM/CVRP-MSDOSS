@@ -2,7 +2,7 @@
 #Algorithm miGenetico
 
 //parámetros
-#MAX_GENERATIONS 10000
+#MAX_GENERATIONS 1
 #N 5
  
 

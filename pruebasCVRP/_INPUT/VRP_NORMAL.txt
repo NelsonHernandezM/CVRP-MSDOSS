@@ -6,8 +6,7 @@
 #N 31
  
 
-#Problem-Instance _INPUT/instancia_VRP.txt
-
+#Problem-Instance _INPUT/instancia_simpleCVRP-instanciaoriginal.txt
 #mutation miMutacion
 #miMutacion-probability 0.2
 #selection RandomSelection

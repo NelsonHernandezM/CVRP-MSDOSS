@@ -139,7 +139,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CVRP.cpp" />
+    <ClCompile Include="CVRP.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="miBusqueda.cpp" />
     <ClCompile Include="miCEVRP.cpp" />
     <ClCompile Include="miCruza.cpp" />
@@ -150,7 +152,9 @@
     <ClCompile Include="pruebasCVRP.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CVRP.h" />
+    <ClInclude Include="CVRP.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="miBusqueda.h" />
     <ClInclude Include="miCEVRP.h" />
     <ClInclude Include="miCruza.h" />

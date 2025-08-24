@@ -50,9 +50,11 @@ int main()
 
         ProblemBuilder::add("miCEVRP", new miCEVRP());
 
+      //  ProblemBuilder::add("CVRP", new CVRP());
+
      Algorithm* alg = AlgorithmBuilder::execute("_INPUT-EVRP/config_GA.txt");
 
-       // Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA.txt");
+      //  Algorithm* alg = AlgorithmBuilder::execute("_INPUT/VRP_NORMAL.txt");
        //Algorithm* alg = AlgorithmBuilder::execute("_INPUT/vrpGA2.txt");
         alg->execute();
         ofstream out("Salida-CVRP.txt");
